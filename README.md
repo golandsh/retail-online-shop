@@ -73,15 +73,23 @@ This repository is a monorepo for the Retail Online Shop project, containing bot
 
 ## Local Development
 
-### Running the Whole Project
-To launch both the frontend Vite dev server and the backend Firebase emulators in parallel, run:
+### 1. Start the Dockerized Firebase Emulators
+First, launch the central Firestore, Storage, Authentication, and Cloud Functions emulators inside Docker:
+```bash
+pnpm docker:up
+```
+The Emulator UI will be accessible at `http://localhost:4000`.
+
+
+### 2. Running the Whole Project
+To launch both the frontend Vite dev server and the backend TypeScript watcher in parallel, run:
 ```bash
 pnpm dev
 ```
 This runs the root dev task defined in `turbo.json`.
 
 - **Admin Web Dashboard**: Accessible at `http://localhost:5173`.
-- **Firebase Emulator UI**: Accessible at `http://localhost:4000`.
+- **Firebase Emulator UI**: Accessible at `http://localhost:4000` (which hosts all emulators, including Functions on port `5001`).
 
 ### Running Specific Services
 You can run actions on individual workspace packages using pnpm filters:
@@ -90,10 +98,12 @@ You can run actions on individual workspace packages using pnpm filters:
   ```bash
   pnpm --filter admin dev
   ```
-- **Start Firebase backend emulators only**:
+- **Start Cloud Functions compiler watcher only**:
   ```bash
-  pnpm --filter grocery-import serve
+  pnpm --filter grocery-import dev
   ```
+
+
 
 ---
 

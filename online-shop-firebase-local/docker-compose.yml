@@ -1,0 +1,22 @@
+services:
+  firebase:
+    build: .
+    container_name: online-shop-firebase-local
+    ports:
+      - "4000:4000"  # Emulator UI
+
+      - "4400:4400"  # Emulator Hub
+      - "5001:5001"  # Functions Emulator
+
+      - "8080:8080"  # Firestore Emulator
+      - "9099:9099"  # Auth Emulator
+      - "9199:9199"  # Storage Emulator
+    volumes:
+      - ./data:/srv/online-shop/online-shop-firebase-local/data
+      - ../:/srv/online-shop
+    working_dir: /srv/online-shop/online-shop-firebase-local
+    environment:
+      - GCLOUD_PROJECT=online-shop-bf396
+      - HOST=0.0.0.0
+
+    restart: unless-stopped

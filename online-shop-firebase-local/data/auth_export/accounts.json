@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+      "localId": "admin-mock-user-id",
+      "email": "admin@example.com",
+      "emailVerified": true,
+      "displayName": "Admin Mock User",
+      "providerUserInfo": [
+        {
+          "providerId": "google.com",
+          "rawId": "admin-mock-user-google-id",
+          "federatedId": "admin@example.com",
+          "email": "admin@example.com",
+          "displayName": "Admin Mock User"
+        }
+      ],
+      "validSince": "1719680000",
+      "lastLoginAt": "1719680000",
+      "createdAt": "1719680000"
+    }
+  ]
+}

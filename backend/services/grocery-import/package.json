@@ -5,11 +5,7 @@
     "main": "lib/index.js",
     "scripts": {
         "build": "tsc",
-        "dev": "pnpm serve",
-        "serve": "pnpm build && node scripts/run-firebase-emulator.js",
-        "shell": "pnpm build && firebase functions:shell",
-        "deploy": "pnpm build && firebase deploy --only functions",
-        "logs": "firebase functions:log",
+        "dev": "tsc -w",
         "test": "vitest run",
         "lint": "tsc --noEmit",
         "clean": "rimraf lib node_modules"
@@ -40,9 +36,9 @@
     "devDependencies": {
         "@types/node": "^26.0.1",
         "@types/nodemailer": "^8.0.1",
-        "firebase-tools": "^15.22.3",
         "rimraf": "^6.0.1",
         "typescript": "^6.0.3",
         "vitest": "^4.1.9"
     }
+
 }

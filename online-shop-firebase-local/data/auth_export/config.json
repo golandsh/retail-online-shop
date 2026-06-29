@@ -1,0 +1,9 @@
+{
+  "hashConfig": {
+    "algorithm": "SCRYPT",
+    "key": "base64",
+    "saltSeparator": "base64",
+    "rounds": 8,
+    "memoryCost": 14
+  }
+}
