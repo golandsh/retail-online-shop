@@ -1,7 +1,9 @@
 packages:
   - 'frontend/*'
   - 'backend/*'
+  - 'backend/services/*'
   - 'backend/libs/*'
 allowBuilds:
   '@firebase/util': true
   protobufjs: true
+  re2: true
