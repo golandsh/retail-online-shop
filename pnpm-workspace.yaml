@@ -1,0 +1,7 @@
+packages:
+  - 'frontend/*'
+  - 'backend/*'
+  - 'backend/libs/*'
+allowBuilds:
+  '@firebase/util': true
+  protobufjs: true
