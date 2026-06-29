@@ -5,7 +5,7 @@ import { buildHistoryFileName } from "./archive-csv";
 describe("buildHistoryFileName", () => {
     it("moves a CSV file into the history folder with a timestamp suffix", () => {
         const destination = buildHistoryFileName(
-            "imports/products/products.csv",
+            "imports/prices/products.csv",
             "History/",
             new Date("2026-06-28T20:56:30.123Z"),
         );
@@ -15,7 +15,7 @@ describe("buildHistoryFileName", () => {
 
     it("normalizes a history folder without a trailing slash", () => {
         const destination = buildHistoryFileName(
-            "imports/products/prices.csv",
+            "imports/prices/prices.csv",
             "History",
             new Date("2026-06-28T20:56:30.123Z"),
         );

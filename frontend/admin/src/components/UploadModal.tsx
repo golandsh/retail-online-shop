@@ -118,7 +118,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
     setMessage(null);
 
     const timestamp = Date.now();
-    const destinationRef = storageRef(storage, `admin_uploads/${timestamp}_${file.name}`);
+    const destinationRef = storageRef(storage, `imports/prices/${timestamp}_${file.name}`);
     const uploadTask = uploadBytesResumable(destinationRef, file);
 
     uploadTask.on(

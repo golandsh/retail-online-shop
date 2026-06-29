@@ -27,7 +27,7 @@ const parseRecipients = (value?: string): string[] =>
 
 export const getImporterConfig = (): ImporterConfig => ({
     storageBucket: process.env.IMPORT_STORAGE_BUCKET ?? "online-shop-bf396.firebasestorage.app",
-    importFolder: withTrailingSlash(process.env.IMPORT_FOLDER ?? "imports/products/"),
+    importFolder: withTrailingSlash(process.env.IMPORT_FOLDER ?? "imports/prices/"),
     historyFolder: withTrailingSlash(process.env.HISTORY_FOLDER ?? "History/"),
     failureEmailRecipients: parseRecipients(process.env.IMPORT_FAILURE_EMAIL_TO),
     smtp: {

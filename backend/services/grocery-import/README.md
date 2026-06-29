@@ -8,7 +8,7 @@ See [docs/firestore-schema.md](docs/firestore-schema.md) for the Grocery Deliver
 
 ## CSV Structure
 
-Upload CSV files to the configured import folder, defaulting to `imports/products/`.
+Upload CSV files to the configured import folder, defaulting to `imports/prices/`.
 
 Required columns:
 
@@ -40,7 +40,7 @@ Create `.env.local` for local development. Do not commit real secrets.
 
 ```bash
 IMPORT_STORAGE_BUCKET=online-shop-bf396.firebasestorage.app
-IMPORT_FOLDER=imports/products/
+IMPORT_FOLDER=imports/prices/
 HISTORY_FOLDER=History/
 IMPORT_FAILURE_EMAIL_TO=admin@example.com
 SMTP_HOST=smtp.example.com
@@ -78,7 +78,7 @@ npm run serve
 
 The `serve` script automatically uses a locally installed Temurin JDK 21 on Windows if Cursor's terminal has not picked up the updated Java PATH yet.
 
-After the emulators start, open `http://127.0.0.1:4000/storage/online-shop-bf396.firebasestorage.app` and upload [samples/sample-products.csv](samples/sample-products.csv) to `imports/products/sample-products.csv`. The function listens to the `online-shop-bf396.firebasestorage.app` bucket and only processes `.csv` files under `imports/products/`. Confirm the function logs show file filtering, CSV parsing, row validation, Firestore upserts, archive movement, and final status.
+After the emulators start, open `http://127.0.0.1:4000/storage/online-shop-bf396.firebasestorage.app` and upload [samples/sample-products.csv](samples/sample-products.csv) to `imports/prices/sample-products.csv`. The function listens to the `online-shop-bf396.firebasestorage.app` bucket and only processes `.csv` files under `imports/prices/`. Confirm the function logs show file filtering, CSV parsing, row validation, Firestore upserts, archive movement, and final status.
 
 Run local checks:
 

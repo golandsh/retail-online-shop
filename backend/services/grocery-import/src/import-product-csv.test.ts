@@ -82,7 +82,7 @@ describe("importProductCsv", () => {
             db,
             batchSize: 5,
             file: {
-                name: "imports/products/sample-products.csv",
+                name: "imports/prices/sample-products.csv",
                 createReadStream: () => Readable.from([csv]),
             },
         });
