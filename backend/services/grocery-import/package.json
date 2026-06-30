@@ -19,7 +19,8 @@
     "license": "ISC",
     "type": "commonjs",
     "engines": {
-        "node": "22"
+        "node": ">=22",
+        "pnpm": ">=11.8.0"
     },
     "bugs": {
         "url": "https://github.com/mosheProj/Grocery-ImporterApi/issues"

@@ -1,0 +1,15 @@
+{
+  "functions": {
+    "source": "backend/services/grocery-import",
+    "runtime": "nodejs22",
+    "predeploy": [
+      "pnpm --prefix \"$RESOURCE_DIR\" run build"
+    ]
+  },
+  "storage": {
+    "rules": "online-shop-firebase-local/storage.rules"
+  },
+  "firestore": {
+    "rules": "online-shop-firebase-local/firestore.rules"
+  }
+}

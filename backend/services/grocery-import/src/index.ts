@@ -40,6 +40,7 @@ export const shouldProcessStorageObject = (
 
 export const importProductCsvOnUpload = onObjectFinalized(
     {
+        region: "us-east1",
         bucket: triggerConfig.storageBucket,
         retry: true,
         timeoutSeconds: 540,
