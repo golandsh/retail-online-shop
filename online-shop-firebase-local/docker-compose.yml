@@ -14,9 +14,21 @@ services:
     volumes:
       - ./data:/srv/online-shop/online-shop-firebase-local/data
       - ../:/srv/online-shop
+      - grocery-import-node-modules:/srv/online-shop/backend/services/grocery-import/node_modules
     working_dir: /srv/online-shop/online-shop-firebase-local
     environment:
       - GCLOUD_PROJECT=online-shop-bf396
       - HOST=0.0.0.0
-
+      - JAVA_HOME=/opt/java/openjdk
+      - PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    command: >
+      sh -lc "export JAVA_HOME=/opt/java/openjdk
+      && export PATH=/opt/java/openjdk/bin:$$PATH
+      && cd /srv/online-shop/backend/services/grocery-import
+      && npm install --omit=dev --no-package-lock --no-save
+      && cd /srv/online-shop/online-shop-firebase-local
+      && firebase emulators:start --project online-shop-bf396 --import=./data --export-on-exit"
     restart: unless-stopped
+
+volumes:
+  grocery-import-node-modules:
