@@ -4,6 +4,7 @@ import type { User } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 import { UploadModal } from './components/UploadModal';
 import { t } from './strings';
+import './App.scss';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
