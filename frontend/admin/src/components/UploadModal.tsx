@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ref as storageRef, uploadBytesResumable } from 'firebase/storage';
 import { storage } from '../firebase';
 import { t } from '../strings';
+import './UploadModal.scss';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -16,6 +18,64 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
   const [progress, setProgress] = useState<number>(0);
   const [uploading, setUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
+
+  // Toast notifications states
+  const [toast, setToast] = useState<{ text: string; isError: boolean } | null>(null);
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Transition state
+  const [isClosing, setIsClosing] = useState<boolean>(false);
+
+  const handleClose = useCallback(() => {
+    if (uploading) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 350);
+  }, [onClose, uploading]);
+
+  // Show notification popdown
+  const showNotification = (text: string, isError: boolean) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    
+    setToast({ text, isError });
+    setTimeout(() => {
+      setShowToast(true);
+    }, 10);
+
+    toastTimeoutRef.current = setTimeout(() => {
+      setShowToast(false);
+      toastTimeoutRef.current = setTimeout(() => {
+        setToast(null);
+      }, 400);
+    }, 4000);
+  };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Reset modal state on close
+  useEffect(() => {
+    if (!isOpen) {
+      setFile(null);
+      setProgress(0);
+      setUploading(false);
+      setMessage(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -39,6 +99,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
     // Fallback for browsers without closedby support
     const handleLightDismiss = (event: MouseEvent) => {
       if (event.target !== dialog) return;
+      if (uploading) return;
 
       const rect = dialog.getBoundingClientRect();
       const isDialogContent = (
@@ -49,13 +110,14 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
       );
 
       if (isDialogContent) return;
-      onClose();
+      handleClose();
     };
 
     // Listen to native dialog cancel (Esc key) to sync React state
     const handleCancel = (event: Event) => {
       event.preventDefault();
-      onClose();
+      if (uploading) return;
+      handleClose();
     };
 
     dialog.addEventListener('click', handleLightDismiss);
@@ -65,7 +127,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
       dialog.removeEventListener('click', handleLightDismiss);
       dialog.removeEventListener('cancel', handleCancel);
     };
-  }, [onClose]);
+  }, [handleClose, uploading]);
 
   const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -132,31 +194,38 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
       (error) => {
         console.error("Upload error:", error);
         setUploading(false);
-        setMessage({ text: t('uploadErrorText'), isError: true });
+        showNotification(t('uploadErrorText'), true);
       },
       () => {
-        setUploading(false);
-        setFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        setMessage({ text: t('uploadSuccessText', { filename: file.name }), isError: false });
+        setProgress(100);
+        const fileName = file.name;
+        showNotification(t('uploadSuccessText', { filename: fileName }), false);
+        
+        // Wait 1.2s to show success and 100% progress before starting smooth fade out
+        setTimeout(() => {
+          setIsClosing(true);
+          setTimeout(() => {
+            onClose();
+            setIsClosing(false);
+          }, 350);
+        }, 1200);
       }
     );
   };
 
   return (
-    <dialog
+    <>
+      <dialog
       ref={dialogRef}
       className="upload-dialog"
       aria-labelledby="dialog-title"
       // Using closedby attribute with type cast for compilation if not in HTMLDialogElement type definition yet
       {...({ closedby: "any" } as React.HTMLAttributes<HTMLDialogElement>)}
     >
-      <div className="dialog-content">
+      <div className={`dialog-content ${isOpen && !isClosing ? 'open' : ''} ${isClosing ? 'closing' : ''}`}>
         <div className="dialog-header">
           <h2 id="dialog-title">{t('modalTitle')}</h2>
-          <button className="close-x-btn" onClick={onClose} aria-label={t('closeButton')}>
+          <button className="close-x-btn" onClick={handleClose} aria-label={t('closeButton')} disabled={uploading}>
             &times;
           </button>
         </div>
@@ -211,7 +280,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
           <button 
             type="button" 
             className="btn btn-secondary" 
-            onClick={onClose}
+            onClick={handleClose}
             disabled={uploading}
           >
             {t('closeButton')}
@@ -228,5 +297,17 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose }) => 
         </div>
       </div>
     </dialog>
+    {toast && createPortal(
+      <div className={`toast-notification ${toast.isError ? 'error' : 'success'} ${showToast ? 'show' : ''}`}>
+        <div className="toast-icon">
+          {toast.isError ? '❌' : '✨'}
+        </div>
+        <div className="toast-content">
+          {toast.text}
+        </div>
+      </div>,
+      document.body
+    )}
+  </>
   );
 };
