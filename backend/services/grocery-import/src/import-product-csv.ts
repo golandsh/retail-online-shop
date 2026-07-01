@@ -85,9 +85,7 @@ const toFirestoreCategory = (row: ProductRow, id: number): FirebaseFirestore.Doc
 const toFirestorePriceList = (row: ProductRow, id: number): FirebaseFirestore.DocumentData => ({
     id,
     productId: row.productId,
-    productDescSnapshot: row.productDesc,
     categoryId: row.categoryId,
-    categoryDescSnapshot: row.categoryDesc,
     price: row.price,
     weightable: row.weightable,
     source: "csv_import",
