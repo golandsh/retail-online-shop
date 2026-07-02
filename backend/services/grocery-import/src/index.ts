@@ -6,13 +6,9 @@ import { onObjectFinalized } from "firebase-functions/v2/storage";
 import { archiveCsvFile } from "./archive-csv";
 import { getImporterConfig, type ImporterConfig } from "./config";
 import { sendImportFailureEmail } from "./email-notifier";
-import {
-    recordImportFailure,
-    recordImportStarted,
-    recordImportSuccess,
-    type StorageObjectIdentity,
-} from "./import-attempts";
 import { importProductCsv } from "./import-product-csv";
+import { recordImportFailureLog, recordImportSuccessLog } from "./import-logs";
+import { ImportPriceFail } from "./import-price-fail";
 import { errorToLogContext, logger } from "./logger";
 
 initializeApp();
@@ -42,7 +38,7 @@ export const importProductCsvOnUpload = onObjectFinalized(
     {
         region: "us-east1",
         bucket: triggerConfig.storageBucket,
-        retry: true,
+        retry: false,
         timeoutSeconds: 540,
         memory: "512MiB",
     },
@@ -76,21 +72,20 @@ export const importProductCsvOnUpload = onObjectFinalized(
             return;
         }
 
-        const objectIdentity: StorageObjectIdentity = {
-            bucket: bucketName,
-            name: fileName,
-            generation: event.data.generation ? String(event.data.generation) : undefined,
-        };
-
         const file = getStorage().bucket(bucketName).file(fileName);
-
-        await recordImportStarted(db, objectIdentity);
+        const logContext = {
+            bucket: bucketName,
+            fileName,
+            generation: event.data.generation ? String(event.data.generation) : undefined,
+            durationMs: 0,
+        };
 
         try {
             const importResult = await importProductCsv({ db, file });
             const archivedFileName = await archiveCsvFile(file, config.historyFolder);
+            logContext.durationMs = Date.now() - startedAt;
 
-            await recordImportSuccess(db, objectIdentity, importResult, archivedFileName);
+            await recordImportSuccessLog(db, logContext, importResult, archivedFileName);
 
             logger.info("Completed CSV import process", {
                 bucket: bucketName,
@@ -111,50 +106,33 @@ export const importProductCsvOnUpload = onObjectFinalized(
                 durationMs: Date.now() - startedAt,
             });
         } catch (error) {
-            const failure = await recordImportFailure(db, objectIdentity, error);
+            logContext.durationMs = Date.now() - startedAt;
 
-            logger.error("CSV import attempt failed", {
+            await recordImportFailureLog(db, logContext, error);
+
+            logger.error("CSV import failed", {
                 bucket: bucketName,
                 fileName,
-                attemptCount: failure.attemptCount,
-                shouldRetry: failure.shouldRetry,
                 ...errorToLogContext(error),
             });
-
-            if (failure.shouldRetry) {
-                logger.info("CSV import function summary", {
-                    status: "failed_retrying",
-                    bucket: bucketName,
-                    fileName,
-                    attemptCount: failure.attemptCount,
-                    durationMs: Date.now() - startedAt,
-                    ...errorToLogContext(error),
-                });
-                throw error;
-            }
 
             await sendImportFailureEmail({
                 config,
                 fileName,
                 bucket: bucketName,
-                attemptCount: failure.attemptCount,
                 error,
             });
 
-            logger.error("CSV import retries exhausted", {
-                bucket: bucketName,
-                fileName,
-                attemptCount: failure.attemptCount,
-            });
             logger.info("CSV import function summary", {
-                status: "failed_exhausted",
+                status: "failed",
                 bucket: bucketName,
                 fileName,
-                attemptCount: failure.attemptCount,
                 emailRecipients: config.failureEmailRecipients,
                 durationMs: Date.now() - startedAt,
                 ...errorToLogContext(error),
             });
+
+            throw new ImportPriceFail(fileName, error);
         }
     },
 );

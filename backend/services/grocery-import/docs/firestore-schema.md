@@ -148,9 +148,21 @@ Fields:
 - `currentStatus`: `available`, `busy`, `offline`
 - `updatedAt`: Firestore server timestamp
 
-### `importAttempts/{attemptId}` and `importLogs/{importLogId}`
+### `importLogs/{importLogId}`
 
-Technical collections used by the importer for retry tracking and operational logs.
+Operational import logs written by the CSV importer.
+
+Fields:
+
+- `bucket`: string
+- `fileName`: string
+- `generation`: string or null, Storage object generation
+- `status`: `succeeded` or `failed`
+- `result`: map, import counts on success (`rowCount`, `upsertedCount`, etc.)
+- `archivedFileName`: string, present on success
+- `error`: string, present on failure
+- `durationMs`: number
+- `createdAt`: Firestore server timestamp
 
 ## Query Patterns
 

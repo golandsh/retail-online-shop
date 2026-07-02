@@ -14,9 +14,10 @@ services:
     volumes:
       - ./data:/srv/online-shop/online-shop-firebase-local/data
       - ../:/srv/online-shop
+      
     working_dir: /srv/online-shop/online-shop-firebase-local
     environment:
       - GCLOUD_PROJECT=online-shop-bf396
       - HOST=0.0.0.0
-
+   
     restart: unless-stopped
