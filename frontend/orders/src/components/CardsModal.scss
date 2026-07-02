@@ -1,0 +1,123 @@
+.cards-modal-card {
+  max-width: 480px;
+}
+
+.cards-modal-body {
+  padding: 24px;
+}
+
+.empty-cards-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: #6b7280;
+  text-align: center;
+
+  .empty-cards-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  p {
+    margin: 0 0 4px 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .sub-text {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    font-weight: 500;
+  }
+}
+
+.saved-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.card-item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: right;
+
+  .card-logo {
+    font-size: 1.5rem;
+  }
+
+  .card-text-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .card-digits {
+    font-size: 0.925rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .card-holder-name {
+    font-size: 0.775rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+}
+
+.delete-card-btn {
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: var(--error);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+  }
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  background: #f9fafb;
+
+  .close-btn {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    padding: 8px 20px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background: #e5e7eb;
+    }
+  }
+}
