@@ -70,8 +70,8 @@
 
   &.active {
     background: var(--accent-light);
-    border-right: 4px solid var(--accent);
-    color: var(--accent);
+    border-right: 4px solid var(--primary);
+    color: var(--primary);
     font-weight: 700;
   }
 }
@@ -124,8 +124,8 @@
   }
 
   &.active {
-    color: #0ea5e9; // ocean blue accent for subcategories
-    background: rgba(14, 165, 233, 0.08);
-    border-right: 4px solid #0ea5e9;
+    color: var(--primary);
+    background: var(--accent-light);
+    border-right: 4px solid var(--primary);
   }
 }

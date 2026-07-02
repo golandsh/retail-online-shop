@@ -182,14 +182,14 @@
   .remove-item-btn {
     background: transparent;
     border: none;
-    color: #ef4444;
+    color: var(--danger);
     font-size: 0.775rem;
     cursor: pointer;
     text-decoration: underline;
     padding: 0;
 
     &:hover {
-      color: #f87171;
+      opacity: 0.8;
     }
   }
 }

@@ -70,7 +70,14 @@ const AppContent: React.FC = () => {
     <div className="orders-portal" dir="rtl">
       {/* Top Navigation Bar */}
       <header className="portal-header">
-        <div className="header-right">
+        <div 
+          className="header-right"
+          onClick={() => {
+            setSelectedCategoryId('dairy');
+            setIsCartOpen(false);
+            setIsUserDropdownOpen(false);
+          }}
+        >
           <span className="portal-logo">🛒</span>
           <div className="portal-title-block">
             <h1>סופר-פרש</h1>
@@ -79,18 +86,6 @@ const AppContent: React.FC = () => {
         </div>
 
         <div className="header-left">
-          {/* Home Button to return to main product view */}
-          <button
-            type="button"
-            className="home-btn"
-            onClick={() => {
-              setSelectedCategoryId('dairy');
-              setIsCartOpen(false);
-              setIsUserDropdownOpen(false);
-            }}
-          >
-            🏠 דף הבית
-          </button>
 
           {/* Cart Widget */}
           <button

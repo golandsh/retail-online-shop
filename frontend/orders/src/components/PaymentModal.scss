@@ -96,7 +96,7 @@ textarea {
   font-weight: 600;
 
   &.buffer-line {
-    color: #ef4444;
+    color: var(--danger);
   }
 
   &.total-line {
