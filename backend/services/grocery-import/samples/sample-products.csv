@@ -1,6 +1,6 @@
-ProductId,product desc,categoryId,category desc,new price,weightable
-1001,Milk 3 Percent,dairy,Dairy Products,7.50,false
-1002,White Bread,bakery,Bakery,6.90,false
-1003,Bananas,produce,Fruits and Vegetables,4.20,true
-1004,Tomatoes,produce,Fruits and Vegetables,5.80,true
-1005,Eggs 12 Pack,dairy,Dairy Products,14.90,false
+ProductID,description,IsWeightable,CategoryID,CategoryName,SubCategoryID,SubCategoryName,ImageURL,Price
+1001,Milk 3 Percent,false,1,Dairy Products,10,Milk,https://example.com/milk.jpg,7.50
+1002,White Bread,false,2,Bakery,,,,6.90
+1003,Bananas,true,3,Produce,30,Fruits and Vegetables,https://example.com/bananas.jpg,4.20
+1004,Tomatoes,true,3,Produce,31,Vegetables,,5.80
+1005,Eggs 12 Pack,false,1,Dairy Products,11,Eggs,,14.90

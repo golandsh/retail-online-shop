@@ -101,6 +101,7 @@ export const importProductCsvOnUpload = onObjectFinalized(
                 rowCount: importResult.rowCount,
                 upsertedCount: importResult.upsertedCount,
                 categoryUpsertedCount: importResult.categoryUpsertedCount,
+                subCategoryUpsertedCount: importResult.subCategoryUpsertedCount,
                 priceListUpsertedCount: importResult.priceListUpsertedCount,
                 batchCommitCount: importResult.batchCommitCount,
                 durationMs: Date.now() - startedAt,
