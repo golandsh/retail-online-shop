@@ -12,30 +12,43 @@ This package is part of the `retail-online-shop` pnpm monorepo. Use **pnpm**, no
 
 Upload CSV files to the configured import folder, defaulting to `imports/prices/`.
 
-Required columns:
-
 ```csv
-ProductId,product desc,categoryId,category desc,new price,weightable
-123,Milk 3%,dairy,Dairy Products,7.50,false
-456,Bananas,produce,Produce,4.00,true
+ProductID,description,IsWeightable,CategoryID,CategoryName,SubCategoryID,SubCategoryName,ImageURL,Price
+1001,Milk 3 Percent,false,1,Dairy Products,10,Milk,https://example.com/milk.jpg,7.50
+1002,White Bread,false,2,Bakery,,,,6.90
 ```
 
-Supported aliases:
+| Column | Required | Notes |
+|---|---|---|
+| `ProductID` | Optional on create | Required to update an existing product |
+| `description` | Yes | Product name (max 50 chars) |
+| `IsWeightable` | Yes | `true`/`false`, `1`/`0`, `yes`/`no` |
+| `CategoryID` | Optional* | Parent category numeric id |
+| `CategoryName` | Optional* | Parent category description |
+| `SubCategoryID` | Optional | Subcategory numeric id |
+| `SubCategoryName` | Optional | Subcategory description |
+| `ImageURL` | Optional | `http`/`https` URL (max 500 chars) |
+| `Price` | Yes | Decimal price |
 
-- `ProductId`, `product id`, `productId`
-- `product desc`, `product description`, `productDesc`
-- `categoryId`, `category id`, `category`
-- `category desc`, `category description`, `categoryDesc`
-- `new price`, `price`
-- `weightable`, `wieghtable`, `weighable`
+\* At least one of `CategoryID` or `CategoryName` is required per row.
+
+Supported header aliases include `product id`, `category desc`, `category name`, `sub category id`, `sub category name`, `weightable`, and `new price`.
+
+### Validation rules
+
+- **Category:** if `CategoryID` is provided it must exist; if `CategoryName` is also provided it must match the stored description. If only `CategoryName` is provided, the importer creates the parent category when missing.
+- **Subcategory:** same hybrid rules under the resolved parent category. If subcategory columns are empty, the product is stored without `subCategoryId`.
+- **Product:** if `ProductID` is provided, it must match the stored description or be unused. If omitted, a new product id is allocated. Import fails when the description already exists without a `ProductID`.
+- **Price:** upserts `priceLists` for the resolved product (`createDate` on insert, `modifyDate` on update).
 
 Each imported row writes:
 
-- Product catalog fields to `products/{ProductId}` without `categoryDesc` or `price`
-- Category descriptions to `categories/{categoryId}`
-- Imported prices to `PriceLists/{ProductId}`
-- Auto-increment integer `id` fields using `counters/{tableName}`
+- Parent and subcategory documents to `categories/{id}`
+- Product catalog fields to `products/{id}`
+- Imported prices to `priceLists/{id}`
 - Operational logs to `importLogs`
+
+See [docs/firestore-schema.md](docs/firestore-schema.md) for the full GDS model, including `orders`, `orderDetails`, `users`, and `addresses` (not populated by CSV import).
 
 ## Environment
 
