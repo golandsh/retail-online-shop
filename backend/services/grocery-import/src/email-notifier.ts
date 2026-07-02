@@ -7,7 +7,6 @@ export interface FailureEmailInput {
     config: ImporterConfig;
     fileName: string;
     bucket: string;
-    attemptCount: number;
     error: unknown;
 }
 
@@ -27,14 +26,12 @@ export const sendImportFailureEmail = async ({
     config,
     fileName,
     bucket,
-    attemptCount,
     error,
 }: FailureEmailInput): Promise<void> => {
     if (config.failureEmailRecipients.length === 0) {
         logger.warn("Skipping failure email because no recipients are configured", {
             fileName,
             bucket,
-            attemptCount,
         });
         return;
     }
@@ -43,7 +40,6 @@ export const sendImportFailureEmail = async ({
         logger.warn("Skipping failure email because SMTP configuration is incomplete", {
             fileName,
             bucket,
-            attemptCount,
         });
         return;
     }
@@ -51,7 +47,6 @@ export const sendImportFailureEmail = async ({
     logger.info("Sending import failure email", {
         fileName,
         bucket,
-        attemptCount,
         recipients: config.failureEmailRecipients,
     });
 
@@ -68,13 +63,12 @@ export const sendImportFailureEmail = async ({
     await transporter.sendMail({
         from: config.smtp.from,
         to: config.failureEmailRecipients,
-        subject: `CSV import failed after ${attemptCount} attempts`,
+        subject: `CSV import failed: ${fileName}`,
         text: [
-            "CSV import failed after the maximum retry count.",
+            "CSV price import failed.",
             "",
             `Bucket: ${bucket}`,
             `File: ${fileName}`,
-            `Attempts: ${attemptCount}`,
             `Error: ${getErrorMessage(error)}`,
         ].join("\n"),
     });
@@ -82,6 +76,5 @@ export const sendImportFailureEmail = async ({
     logger.info("Sent import failure email", {
         fileName,
         bucket,
-        attemptCount,
     });
 };
