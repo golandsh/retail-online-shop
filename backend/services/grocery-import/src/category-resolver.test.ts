@@ -165,6 +165,26 @@ describe("resolveCategory", () => {
         ).rejects.toThrow(/description mismatch/i);
     });
 
+    it("creates a category by id and name when the id does not exist yet", async () => {
+        const { db, documentStore } = createMockFirestore();
+
+        const resolved = await resolveCategory(db, {
+            id: 1,
+            name: "Dairy Products",
+            parentId: null,
+        });
+
+        expect(resolved).toMatchObject({
+            id: 1,
+            description: "Dairy Products",
+            created: true,
+        });
+        expect(documentStore.get("categories/1")).toMatchObject({
+            description: "Dairy Products",
+            parentId: null,
+        });
+    });
+
     it("creates a category by name when id is omitted", async () => {
         const { db, documentStore } = createMockFirestore();
 
@@ -178,5 +198,16 @@ describe("resolveCategory", () => {
             description: "Produce",
             parentId: null,
         });
+    });
+
+    it("fails when a category id is provided without a name and the category does not exist", async () => {
+        const { db } = createMockFirestore();
+
+        await expect(
+            resolveCategory(db, {
+                id: 99,
+                parentId: null,
+            }),
+        ).rejects.toThrow(/CategoryID 99 does not exist/i);
     });
 });

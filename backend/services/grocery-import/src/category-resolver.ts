@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 
-import { allocateNextId } from "./auto-increment";
+import { allocateNextId, reservePreferredId } from "./auto-increment";
 import { descriptionsMatch } from "./product-row";
 
 export interface ResolveCategoryInput {
@@ -49,8 +49,15 @@ const createCategory = async (
     db: Firestore,
     description: string,
     parentId: number | null,
+    preferredId?: number,
 ): Promise<ResolvedCategory> => {
-    const categoryId = await allocateNextId(db, "categories");
+    const categoryId =
+        preferredId !== undefined ? preferredId : await allocateNextId(db, "categories");
+
+    if (preferredId !== undefined) {
+        await reservePreferredId(db, "categories", preferredId);
+    }
+
     const categoryRef = db.collection("categories").doc(String(categoryId));
 
     await categoryRef.set({
@@ -73,14 +80,6 @@ const validateExistingCategory = (
     snapshot: FirebaseFirestore.DocumentSnapshot,
     input: ResolveCategoryInput,
 ): ResolvedCategory => {
-    if (!snapshot.exists) {
-        throw new Error(
-            input.parentId === null
-                ? `CategoryID ${input.id} does not exist`
-                : `SubCategoryID ${input.id} does not exist`,
-        );
-    }
-
     const storedDescription = String(snapshot.get("description") ?? "");
     const storedParentId = (snapshot.get("parentId") as number | null | undefined) ?? null;
 
@@ -114,6 +113,19 @@ export const resolveCategory = async (
 ): Promise<ResolvedCategory> => {
     if (input.id !== undefined) {
         const snapshot = await getCategorySnapshot(db, input.id);
+
+        if (!snapshot.exists) {
+            if (input.name === undefined) {
+                throw new Error(
+                    input.parentId === null
+                        ? `CategoryID ${input.id} does not exist`
+                        : `SubCategoryID ${input.id} does not exist`,
+                );
+            }
+
+            return createCategory(db, input.name, input.parentId, input.id);
+        }
+
         return validateExistingCategory(snapshot, input);
     }
 
