@@ -171,7 +171,7 @@
   &.error {
     background-color: var(--error-light);
     border: 1px solid rgba(239, 68, 68, 0.2);
-    color: var(--error);
+    color: var(--danger);
   }
 }
 
@@ -253,7 +253,7 @@
 
     .toast-icon {
       background-color: var(--error-light);
-      color: var(--error);
+      color: var(--danger);
     }
   }
 }

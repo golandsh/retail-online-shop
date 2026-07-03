@@ -123,3 +123,22 @@ You can run workspace-wide quality checks from the root using Turbo:
   ```bash
   pnpm --filter grocery-import test
   ```
+
+---
+
+## Future Developments
+
+The following items are recommended for future enhancement of the system:
+
+1. **Multiple Addresses Support**:
+   - Refactor user details and profile models to support an array of delivery addresses instead of a single static address.
+   - Allow users to name/label addresses (e.g., "Home", "Work", "Parents") and select the active delivery address during checkout.
+
+2. **Last Login Date tracking for Users**:
+   - Add a `lastLoginDate` timestamp field to the user profile or session entity.
+   - Capture and update this field upon every successful login/OTP verification to track customer activity.
+
+3. **Incorporate `madeInIsrael` flag in Product Entity**:
+   - Integrate `isIsraeliMade` or `madeInIsrael` as a formal boolean property in the core Firestore product entity schemas, Zod validation rules, and grocery-import parsing pipelines.
+   - This ensures that local origin badges are fully database-driven rather than relying on mock configurations.
+
