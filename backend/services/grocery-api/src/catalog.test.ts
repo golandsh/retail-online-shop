@@ -1,9 +1,18 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchCatalog } from "./catalog";
 import { buildPriceByProductId, mapCategory, mapProduct } from "./mappers";
 import { InvalidCatalogQueryError, UserNotFoundError } from "./types";
+
+vi.mock("./config", () => ({
+    getApiConfig: () => ({
+        region: "us-east1",
+        cityWhitelist: [],
+        streetsApiUrl:
+            "https://data.gov.il/api/3/action/datastore_search?resource_id=9ad3862c-8391-4b2f-84a4-2d4c68625f4b",
+    }),
+}));
 
 interface MockQuery {
     where: (field: string, operator: string, value: unknown) => MockQuery;
@@ -170,6 +179,7 @@ describe("fetchCatalog", () => {
         expect(result.user).toBeNull();
         expect(result.products).toHaveLength(1);
         expect(result.categories).toHaveLength(2);
+        expect(result.cityStreets).toEqual([]);
     });
 
     it("returns user and address when phone matches", async () => {

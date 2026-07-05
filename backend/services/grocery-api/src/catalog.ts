@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 
+import { getApiConfig } from "./config";
 import {
     buildPriceByProductId,
     mapAddress,
@@ -7,6 +8,7 @@ import {
     mapProduct,
     mapUser,
 } from "./mappers";
+import { fetchWhitelistedCityStreets } from "./street-directory";
 import type { CatalogQuery, CatalogResponse } from "./types";
 import { InvalidCatalogQueryError, UserNotFoundError } from "./types";
 
@@ -28,20 +30,18 @@ const loadAddressForUser = async (db: Firestore, userId: number) => {
 
 export const fetchCatalog = async (db: Firestore, query: CatalogQuery): Promise<CatalogResponse> => {
     const { phone, userId } = query;
+    const { cityWhitelist, streetsApiUrl } = getApiConfig();
 
     if (phone && userId) {
         throw new InvalidCatalogQueryError("Provide only one of phone or userId, not both");
     }
 
-    const [productsSnapshot, priceListsSnapshot, categoriesSnapshot] = await Promise.all([
+    const [productsSnapshot, priceListsSnapshot, categoriesSnapshot, cityStreets] = await Promise.all([
         db.collection("products").get(),
         db.collection("priceLists").get(),
         db.collection("categories").get(),
+        fetchWhitelistedCityStreets(cityWhitelist, streetsApiUrl),
     ]);
-
-    console.log("productsSnapshot", productsSnapshot.docs.length);
-    console.log("priceListsSnapshot", priceListsSnapshot.docs.length);
-    console.log("categoriesSnapshot", categoriesSnapshot.docs.length);  
 
     const priceByProductId = buildPriceByProductId(priceListsSnapshot.docs);
 
@@ -55,6 +55,7 @@ export const fetchCatalog = async (db: Firestore, query: CatalogQuery): Promise<
         return {
             products,
             categories,
+            cityStreets,
             user: null,
         };
     }
@@ -81,6 +82,7 @@ export const fetchCatalog = async (db: Firestore, query: CatalogQuery): Promise<
     return {
         products,
         categories,
+        cityStreets,
         user: mapUser(userData, address),
     };
 };

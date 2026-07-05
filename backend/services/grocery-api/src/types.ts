@@ -30,9 +30,15 @@ export interface CatalogUser {
     address: CatalogAddress | null;
 }
 
+export interface CityStreetDirectory {
+    city: string;
+    streets: string[];
+}
+
 export interface CatalogResponse {
     products: CatalogProduct[];
     categories: CatalogCategory[];
+    cityStreets: CityStreetDirectory[];
     user: CatalogUser | null;
 }
 

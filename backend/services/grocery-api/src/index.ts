@@ -32,6 +32,7 @@ export const getCatalog = onRequest(
             logger.info("Catalog fetched", {
                 productCount: catalog.products.length,
                 categoryCount: catalog.categories.length,
+                cityCount: catalog.cityStreets.length,
                 hasUser: catalog.user !== null,
                 phone,
                 userId,
