@@ -1,0 +1,2 @@
+ProductID,description,IsWeightable,CategoryID,CategoryName,SubCategoryID,SubCategoryName,ImageURL,Price
+1002,White Bread,false,2,Bakery,,,,2.40

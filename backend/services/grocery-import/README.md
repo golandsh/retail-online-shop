@@ -199,3 +199,82 @@ Check production logs:
 ```bash
 pnpm exec firebase functions:log
 ```
+
+## Catalog API (`grocery-api`)
+
+The sibling service [`backend/services/grocery-api`](../grocery-api/) exposes a public HTTP endpoint `getCatalog` that returns products (with prices), categories, and optional user lookup from Firestore.
+
+Full API contract: [../grocery-api/README.md](../grocery-api/README.md)
+
+### Prerequisites
+
+Same as above: Node 22, pnpm, Firebase emulators running (`pnpm docker:up` or Firebase CLI).
+
+### Build the catalog function
+
+From the monorepo root:
+
+```bash
+pnpm --filter grocery-api build
+```
+
+Watch mode while editing TypeScript:
+
+```bash
+pnpm --filter grocery-api dev
+```
+
+After changing catalog code, rebuild and restart emulators if the function does not hot-reload:
+
+```bash
+pnpm --filter grocery-api build
+docker restart online-shop-firebase-local
+```
+
+### Test the endpoint locally
+
+Emulator URL:
+
+```
+GET http://127.0.0.1:5001/online-shop-bf396/us-east1/getCatalog
+```
+
+Query parameters (optional — use one, not both):
+
+| Param | Example |
+|-------|---------|
+| `phone` | `?phone=0501234567` |
+| `userId` | `?userId=42` |
+
+Examples:
+
+```bash
+# products + categories only (no user)
+curl "http://127.0.0.1:5001/online-shop-bf396/us-east1/getCatalog"
+
+# include user by phone
+curl "http://127.0.0.1:5001/online-shop-bf396/us-east1/getCatalog?phone=0501234567"
+
+# include user by id
+curl "http://127.0.0.1:5001/online-shop-bf396/us-east1/getCatalog?userId=42"
+```
+
+### Sample data for testing
+
+1. Import [samples/sample-products.csv](samples/sample-products.csv) (see **Trigger an import** above) so Firestore has products, categories, and prices.
+2. Add a `users` document and optional `addresses` document in the Firestore emulator UI (`http://localhost:4000/firestore`) to test user lookup.
+
+### Catalog unit tests
+
+```bash
+pnpm --filter grocery-api test
+pnpm --filter grocery-api lint
+```
+
+### Production URL
+
+After deploy (`pnpm run deploy:functions`):
+
+```
+https://us-east1-online-shop-bf396.cloudfunctions.net/getCatalog
+```
