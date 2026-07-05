@@ -82,22 +82,39 @@ export const importProductCsvOnUpload = onObjectFinalized(
 
         try {
             const importResult = await importProductCsv({ db, file });
+
+            if (importResult.passedRowCount === 0) {
+                throw new ImportPriceFail(
+                    fileName,
+                    new Error(
+                        `All ${importResult.failedRowCount} CSV rows failed import. Details: ${JSON.stringify(importResult.failedRows)}`,
+                    ),
+                );
+            }
+
             const archivedFileName = await archiveCsvFile(file, config.historyFolder);
             logContext.durationMs = Date.now() - startedAt;
 
-            await recordImportSuccessLog(db, logContext, importResult, archivedFileName);
+            const importStatus = importResult.failedRowCount > 0 ? "partial" : "succeeded";
+
+            await recordImportSuccessLog(db, logContext, importResult, archivedFileName, importStatus);
 
             logger.info("Completed CSV import process", {
                 bucket: bucketName,
                 fileName,
                 archivedFileName,
+                importStatus,
                 ...importResult,
             });
             logger.info("CSV import function summary", {
-                status: "succeeded",
+                status: importStatus,
                 bucket: bucketName,
                 fileName,
                 archivedFileName,
+                totalRows: importResult.rowCount,
+                passedRows: importResult.passedRowCount,
+                failedRows: importResult.failedRowCount,
+                failedRowDetails: importResult.failedRows,
                 rowCount: importResult.rowCount,
                 upsertedCount: importResult.upsertedCount,
                 categoryUpsertedCount: importResult.categoryUpsertedCount,

@@ -234,6 +234,9 @@ describe("importProductCsv", () => {
 
         expect(result).toMatchObject({
             rowCount: 2,
+            passedRowCount: 2,
+            failedRowCount: 0,
+            failedRows: [],
             upsertedCount: 2,
             categoryUpsertedCount: 2,
             subCategoryUpsertedCount: 2,
@@ -288,5 +291,50 @@ describe("importProductCsv", () => {
         expect(
             categories.some((category) => category.description === "Vegetables" && category.parentId !== null),
         ).toBe(true);
+    });
+
+    it("continues importing after a row failure and returns a summary with failed row details", async () => {
+        const { db, documentStore } = createMockFirestore();
+        documentStore.set("categories/1", {
+            id: 1,
+            description: "Dairy Products",
+            parentId: null,
+        });
+        documentStore.set("categories/10", {
+            id: 10,
+            description: "Milk",
+            parentId: 1,
+        });
+
+        const csv = [
+            "ProductID,description,IsWeightable,CategoryID,CategoryName,SubCategoryID,SubCategoryName,ImageURL,Price",
+            "1001,Milk,false,1,Dairy Products,10,Milk,https://example.com/milk.jpg,7.50",
+            "1002,,true,1,Dairy Products,10,Milk,,4.20",
+            "1003,Cheese,false,1,Dairy Products,10,Milk,,12.00",
+        ].join("\n");
+
+        const result = await importProductCsv({
+            db,
+            file: {
+                name: "imports/prices/sample-products.csv",
+                createReadStream: () => Readable.from([csv]),
+            },
+        });
+
+        expect(result).toMatchObject({
+            rowCount: 3,
+            passedRowCount: 2,
+            failedRowCount: 1,
+            upsertedCount: 2,
+        });
+        expect(result.failedRows).toHaveLength(1);
+        expect(result.failedRows[0]).toMatchObject({
+            csvLineNumber: 3,
+            productId: 1002,
+            error: expect.stringContaining("description"),
+        });
+        expect(documentStore.get("products/1001")).toBeDefined();
+        expect(documentStore.get("products/1003")).toBeDefined();
+        expect(documentStore.get("products/1002")).toBeUndefined();
     });
 });
