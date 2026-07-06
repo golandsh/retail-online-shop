@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../AppContext';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import type { ConfirmationResult } from 'firebase/auth';
+import { auth, useEmulator } from '../firebase';
 import './LoginModal.scss';
 
 export const LoginModal: React.FC = () => {
@@ -7,43 +10,95 @@ export const LoginModal: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [otpCode, setOtpCode] = useState('');
-  const [sentCode, setSentCode] = useState('');
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [error, setError] = useState('');
   const [mockSms, setMockSms] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSendCode = (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    // Basic Israeli phone number validation or simple digit length check
     const cleaned = phoneNumber.replace(/\D/g, '');
     if (cleaned.length < 9 || cleaned.length > 15) {
       setError('אנא הזן מספר טלפון תקין (9-15 ספרות)');
+      setLoading(false);
       return;
     }
 
-    // Generate a random 4 digit code
-    const mockOtp = Math.floor(1000 + Math.random() * 9000).toString();
-    setSentCode(mockOtp);
-    setStep('otp');
+    // Format phone to E.164 (e.g. +972...)
+    let formattedPhone = phoneNumber.trim();
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '+972' + formattedPhone.substring(1);
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+' + formattedPhone;
+    }
 
-    // Trigger mock SMS toast/notification
-    setMockSms(`[הודעת SMS מדומה] קוד האימות שלך הוא: ${mockOtp}`);
-    // Clear mock SMS after 15 seconds
-    setTimeout(() => {
-      setMockSms((prev) => (prev?.includes(mockOtp) ? null : prev));
-    }, 15000);
+    try {
+      let verifier = (window as any).recaptchaVerifier;
+      if (!verifier) {
+        verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible'
+        });
+        (window as any).recaptchaVerifier = verifier;
+      }
+
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, verifier);
+      setConfirmationResult(confirmation);
+      setStep('otp');
+
+      // If emulator, try to fetch the code and show the toast
+      if (useEmulator) {
+        setTimeout(async () => {
+          try {
+            const res = await fetch(`http://localhost:9099/emulator/v1/projects/online-shop-bf396/verificationCodes`);
+            const data = await res.json();
+            const codes = data.verificationCodes || [];
+            const matched = codes.filter((c: any) => c.phoneNumber === formattedPhone).pop();
+            if (matched) {
+              setMockSms(`[הודעת SMS מדומה מהאמולטור] קוד האימות שלך הוא: ${matched.code}`);
+            } else {
+              setMockSms(`[אמולטור] בדוק את ממשק האמולטור בכתובת http://localhost:4000/auth כדי למצוא את קוד ה-SMS`);
+            }
+          } catch (err) {
+            console.error("Failed to fetch verification code from emulator", err);
+          }
+        }, 1500);
+      }
+    } catch (err: any) {
+      console.error("Error signing in with phone number", err);
+      setError(err.message || 'שגיאה בשליחת קוד האימות. אנא נסה שוב.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleVerifyCode = (e: React.FormEvent) => {
+  const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (otpCode === sentCode || otpCode === '1234') { // '1234' is a master developer bypass code
-      login(phoneNumber);
-      setMockSms(null);
-    } else {
-      setError('קוד אימות שגוי. אנא נסה שוב.');
+    if (!confirmationResult) {
+      setError('חלה שגיאה בתהליך האימות. אנא חזור ושלח את הקוד שנית.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await confirmationResult.confirm(otpCode);
+      const user = result.user;
+      if (user && user.phoneNumber) {
+        login(user.phoneNumber);
+        setMockSms(null);
+      } else {
+        throw new Error('שגיאה בקבלת פרטי המשתמש.');
+      }
+    } catch (err: any) {
+      console.error("Error verifying code", err);
+      setError(err.message || 'קוד אימות שגוי. אנא נסה שוב.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,6 +106,8 @@ export const LoginModal: React.FC = () => {
     setStep('phone');
     setOtpCode('');
     setError('');
+    setConfirmationResult(null);
+    setMockSms(null);
   };
 
   return (
@@ -84,41 +141,63 @@ export const LoginModal: React.FC = () => {
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 autoFocus
                 required
+                disabled={loading}
               />
             </div>
-            <button type="submit" className="login-btn">שליחת קוד אימות ב-SMS</button>
+            <button type="submit" className="login-btn" disabled={loading}>
+              {loading ? 'אנא המתן...' : 'שליחת קוד אימות ב-SMS'}
+            </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyCode}>
             <div className="otp-info">
               קוד אימות נשלח למספר: <strong>{phoneNumber}</strong>
             </div>
-            
+
             <div className="input-group">
-              <label htmlFor="otpCode">קוד אימות בן 4 ספרות</label>
+              <label htmlFor="otpCode">קוד אימות בן 6 ספרות</label>
               <input
                 id="otpCode"
                 type="text"
-                maxLength={4}
-                placeholder="הזן 4 ספרות"
+                maxLength={6}
+                placeholder="הזן 6 ספרות"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value)}
                 autoFocus
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="login-actions">
-              <button type="button" className="back-btn" onClick={handleBack}>
+              <button type="button" className="back-btn" onClick={handleBack} disabled={loading}>
                 חזור
               </button>
-              <button type="submit" className="login-btn">התחברות</button>
+              <button type="submit" className="login-btn" disabled={loading}>
+                {loading ? 'מתחבר...' : 'התחברות'}
+              </button>
             </div>
           </form>
         )}
 
         <div className="login-footer">
           על ידי התחברות אתה מסכים לתנאי השימוש ומדיניות הפרטיות שלנו.
+        </div>
+        <div id="recaptcha-container"></div>
+
+        <div className="emulator-toggle-container" style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '13px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#666', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={useEmulator}
+              onChange={(e) => {
+                localStorage.setItem('orders_use_emulator', e.target.checked ? "true" : "false");
+                window.location.reload();
+              }}
+              style={{ cursor: 'pointer' }}
+            />
+            <span>חיבור לסביבת פיתוח מקומית (Emulator)</span>
+          </label>
         </div>
       </div>
     </div>

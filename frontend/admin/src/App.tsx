@@ -54,12 +54,12 @@ function App() {
             <h1 className="app-title">{t('appTitle')}</h1>
             <p className="app-subtitle">{t('loginSubtitle')}</p>
           </header>
-          
+
           {authError && <div className="error-alert">{authError}</div>}
-          
-          <button 
-            type="button" 
-            className="btn btn-google" 
+
+          <button
+            type="button"
+            className="btn btn-google"
             onClick={handleLogin}
           >
             <svg className="google-icon" viewBox="0 0 24 24" width="20" height="20">
@@ -98,21 +98,21 @@ function App() {
           <span className="brand-logo">🛡️</span>
           <h2>{t('appTitle')}</h2>
         </div>
-        
+
         <div className="navbar-user-section">
           {user.photoURL && (
-            <img 
-              className="user-avatar" 
-              src={user.photoURL} 
-              alt={user.displayName || "User"} 
+            <img
+              className="user-avatar"
+              src={user.photoURL}
+              alt={user.displayName || "User"}
             />
           )}
           <span className="user-name">
             {t('welcome', { name: user.displayName || user.email || '' })}
           </span>
-          <button 
-            type="button" 
-            className="btn btn-outline" 
+          <button
+            type="button"
+            className="btn btn-outline"
             onClick={handleLogout}
           >
             {t('logoutButton')}
@@ -135,9 +135,9 @@ function App() {
           <p className="card-description">
             ניתן להעלות קובצי נתונים בפורמט CSV או JSON לעדכון מלאי המוצרים, לקוחות, או הגדרות מערכת ב-Firebase Storage.
           </p>
-          <button 
-            type="button" 
-            className="btn btn-large" 
+          <button
+            type="button"
+            className="btn btn-large"
             onClick={() => setIsModalOpen(true)}
           >
             {t('uploadButtonText')}
@@ -145,9 +145,9 @@ function App() {
         </div>
       </main>
 
-      <UploadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <UploadModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </div>
   );

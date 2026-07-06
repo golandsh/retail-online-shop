@@ -44,7 +44,7 @@ Create `.env.local` in this directory for local development. Do not commit real 
 ```bash
 IMPORT_STORAGE_BUCKET=online-shop-bf396.firebasestorage.app
 IMPORT_FOLDER=imports/prices/
-HISTORY_FOLDER=History/
+HISTORY_FOLDER=imports/history/
 IMPORT_FAILURE_EMAIL_TO=admin@example.com
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
