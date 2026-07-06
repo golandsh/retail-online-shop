@@ -38,7 +38,7 @@ const parseBooleanFlag = (value: string | undefined, defaultValue: boolean): boo
 export const getImporterConfig = (): ImporterConfig => ({
     storageBucket: process.env.IMPORT_STORAGE_BUCKET ?? "online-shop-bf396.firebasestorage.app",
     importFolder: withTrailingSlash(process.env.IMPORT_FOLDER ?? "imports/prices/"),
-    historyFolder: withTrailingSlash(process.env.HISTORY_FOLDER ?? "History/"),
+    historyFolder: withTrailingSlash(process.env.HISTORY_FOLDER ?? "imports/history/"),
     failureEmailEnabled: parseBooleanFlag(process.env.IMPORT_FAILURE_EMAIL_ENABLED, false),
     failureEmailRecipients: parseRecipients(process.env.IMPORT_FAILURE_EMAIL_TO),
     smtp: {
