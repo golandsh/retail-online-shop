@@ -65,24 +65,27 @@ Customer order header. Not populated by CSV import.
 Fields:
 
 - `id`: number
-- `status`: string
+- `userId`: number — customer who placed the order
+- `addressId`: number — delivery address (`addresses/{addressId}`)
+- `phone`: string — denormalized user phone for queries
+- `status`: string — e.g. `pre_authorized`
 - `startDate`: Firestore timestamp
 - `modifyDate`: Firestore timestamp
-- `preAuthPrice`: number
+- `preAuthPrice`: number — order pre-authorization total
 - `completePrice`: number
-- `notes`: string or null
+- `notes`: string or null — delivery comment from checkout
 
 ### `orderDetails/{orderId}_{productId}`
 
-Order line items. Not populated by CSV import.
+Order line items. Not populated by CSV import. Created by `grocery-api` `createOrder`.
 
 Fields:
 
 - `orderId`: number
 - `productId`: number
-- `preAuthPrice`: number
+- `preAuthPrice`: number — line total from checkout (`items[].totalPrice`)
 - `completePrice`: number
-- `preAuthAmount`: number
+- `preAuthAmount`: number — ordered quantity (`items[].quantity`; decimal for weightable products)
 - `completeAmount`: number
 
 ### `users/{id}`

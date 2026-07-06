@@ -1,6 +1,6 @@
 # Grocery Catalog API
 
-Firebase HTTP Cloud Function that exposes a public catalog endpoint for the Grocery Delivery System.
+Firebase HTTP Cloud Functions for the Grocery Delivery System: catalog lookup and order creation.
 
 `GET getCatalog` returns:
 
@@ -82,6 +82,59 @@ If neither is provided, the response includes `user: null`.
 | `405` | Non-GET request |
 | `500` | Unexpected server error |
 
+## Endpoint: createOrder
+
+**Function:** `createOrder`  
+**Method:** `POST`  
+**Auth:** none (public)  
+**CORS:** enabled
+
+Creates an order header in `orders` and line items in `orderDetails`. The user is resolved by phone; the address must belong to that user; all product ids must exist.
+
+### Request body
+
+```json
+{
+  "phone": "0501234567",
+  "addressId": 1,
+  "items": [
+    { "productId": 1001, "quantity": 2, "totalPrice": 15.0 }
+  ],
+  "preAuthPrice": 16.5,
+  "deliveryComment": "Leave at door"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `phone` | User phone (must exist in `users`) |
+| `addressId` | Address document id (must belong to user) |
+| `items` | At least one line; unique `productId` per order |
+| `quantity` | Positive decimal (supports weightable products) |
+| `totalPrice` | Line total from client |
+| `preAuthPrice` | Order pre-auth total; must equal the sum of `items[].totalPrice` |
+| `deliveryComment` | Optional; stored in `orders.notes` |
+
+### Success response (`201`)
+
+```json
+{
+  "orderId": "42",
+  "status": "pre_authorized",
+  "preAuthPrice": 16.5,
+  "itemCount": 1
+}
+```
+
+### Errors
+
+| Status | When |
+|--------|------|
+| `400` | Invalid JSON, Zod validation (including `preAuthPrice` mismatch), address ownership, missing products |
+| `404` | User or address not found |
+| `405` | Non-POST request |
+| `500` | Unexpected server error |
+
 ## Environment
 
 Create `.env.local` in this directory for local development:
@@ -129,6 +182,20 @@ curl "http://127.0.0.1:5001/online-shop-bf396/us-east1/getCatalog?userId=42"
 
 Seed Firestore data via CSV import ([grocery-import](../grocery-import/README.md)) and add `users` / `addresses` documents in the emulator UI (`http://localhost:4000/firestore`) to test user lookup.
 
+Mock user + address for local order testing:
+
+```bash
+pnpm --filter grocery-api seed:mock-user
+```
+
+### createOrder examples
+
+```bash
+curl -X POST "http://127.0.0.1:5001/online-shop-bf396/us-east1/createOrder" \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"0501234567","addressId":1,"items":[{"productId":1001,"quantity":2,"totalPrice":15}],"preAuthPrice":15,"deliveryComment":"test"}'
+```
+
 ### Tests
 
 ```bash
@@ -145,8 +212,9 @@ pnpm --filter grocery-api build
 pnpm run deploy:functions
 ```
 
-Production URL:
+Production URLs:
 
 ```
 https://us-east1-online-shop-bf396.cloudfunctions.net/getCatalog
+https://us-east1-online-shop-bf396.cloudfunctions.net/createOrder
 ```

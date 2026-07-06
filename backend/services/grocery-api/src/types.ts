@@ -60,3 +60,31 @@ export class InvalidCatalogQueryError extends Error {
         this.name = "InvalidCatalogQueryError";
     }
 }
+
+export class AddressNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "AddressNotFoundError";
+    }
+}
+
+export class AddressOwnershipError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "AddressOwnershipError";
+    }
+}
+
+export class ProductNotFoundError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ProductNotFoundError";
+    }
+}
+
+export interface CreateOrderResult {
+    orderId: string;
+    status: string;
+    preAuthPrice: number;
+    itemCount: number;
+}
