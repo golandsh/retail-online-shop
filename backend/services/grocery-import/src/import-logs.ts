@@ -28,12 +28,13 @@ export const recordImportSuccessLog = async (
     context: ImportLogContext,
     result: ImportProductCsvResult,
     archivedFileName: string,
+    status: "succeeded" | "partial" = "succeeded",
 ): Promise<void> => {
     await writeImportLog(db, {
         bucket: context.bucket,
         fileName: context.fileName,
         generation: context.generation ?? null,
-        status: "succeeded",
+        status,
         result,
         archivedFileName,
         durationMs: context.durationMs,

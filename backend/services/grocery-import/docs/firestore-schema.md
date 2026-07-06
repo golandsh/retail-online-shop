@@ -1,61 +1,118 @@
 # Firestore Schema
 
-This document defines the initial Cloud Firestore model for the Grocery Delivery System.
+This document defines the Cloud Firestore model for the Grocery Delivery System (GDS), aligned with the GDS entity diagram.
 
 ## Import Flow
 
-CSV price imports are handled by the Firebase Storage trigger in `src/index.ts`. Each valid row is normalized in `src/productRow.ts` and written by `src/importProductCsv.ts`.
+CSV price imports are handled by the Firebase Storage trigger in `src/index.ts`. Each valid row is normalized in `src/product-row.ts`, categories are resolved in `src/category-resolver.ts`, and rows are written by `src/importProductCsv.ts`.
 
 The importer currently writes:
 
-- Catalog data to `products/{productId}`
-- Category lookup data to `categories/{categoryId}`
-- Imported prices to `PriceLists/{productId}`
+- Parent and subcategory data to `categories/{id}`
+- Product catalog data to `products/{id}`
+- Imported prices to `priceLists/{id}`
 
-Firestore document IDs stay stable business keys for upsert behavior. Each imported table document also stores an auto-increment integer `id` field allocated from the `counters` collection.
+Collections documented below but **not** populated by the CSV importer: `orders`, `orderDetails`, `users`, `addresses`.
+
+Document IDs are numeric strings (e.g. `"1001"`). Auto-increment integer `id` fields are allocated from the `counters` collection when not supplied by CSV.
 
 ## Collections
 
-### `products/{productId}`
+### `categories/{id}`
+
+Hierarchical category lookup. Top-level categories have `parentId: null`. Subcategories reference their parent via `parentId`.
+
+Fields:
+
+- `id`: number, auto-increment category id (matches document id)
+- `parentId`: number or null
+- `description`: string
+- `createdAt`: Firestore server timestamp
+- `updatedAt`: Firestore server timestamp
+
+### `products/{id}`
 
 Master product catalog.
 
 Fields:
 
-- `productId`: string, document id and product identifier from CSV `ProductId`
-- `id`: number, auto-increment product id
-- `productDesc`: string, product description from CSV `product desc`
-- `categoryId`: string, category id from CSV `categoryId`
-- `weightable`: boolean, whether product is sold by weight
-- `active`: boolean
+- `id`: number, auto-increment product id (matches document id)
+- `description`: string
+- `isWeightable`: boolean
+- `categoryId`: number, FK to parent category
+- `subCategoryId`: number or null, FK to subcategory
+- `imageUrl`: string or null
+- `createdAt`: Firestore server timestamp
 - `updatedAt`: Firestore server timestamp
 
-### `categories/{categoryId}`
+### `priceLists/{id}`
 
-Category lookup table. The category key is stored as the Firestore document id, not as a field on the document.
+Imported product price records.
 
 Fields:
 
-- `id`: number, auto-increment category id
-- `categoryDesc`: string
-- `active`: boolean
-- `updatedAt`: Firestore server timestamp
-
-### `PriceLists/{productId}`
-
-Imported product price table. The importer upserts one document per product price.
-
-Fields:
-
-- `id`: number, auto-increment import price id
-- `productId`: string
-- `productDescSnapshot`: string
-- `categoryId`: string
-- `categoryDescSnapshot`: string
+- `id`: number, auto-increment price list id
+- `productId`: number, FK to product
 - `price`: number
-- `weightable`: boolean
-- `source`: string
-- `updatedAt`: Firestore server timestamp
+- `createDate`: Firestore server timestamp
+- `modifyDate`: Firestore server timestamp
+- `source`: string, e.g. `csv_import`
+
+### `orders/{id}`
+
+Customer order header. Not populated by CSV import.
+
+Fields:
+
+- `id`: number
+- `userId`: number — customer who placed the order
+- `addressId`: number — delivery address (`addresses/{addressId}`)
+- `phone`: string — denormalized user phone for queries
+- `status`: string — e.g. `pre_authorized`
+- `startDate`: Firestore timestamp
+- `modifyDate`: Firestore timestamp
+- `preAuthPrice`: number — order pre-authorization total
+- `completePrice`: number
+- `notes`: string or null — delivery comment from checkout
+
+### `orderDetails/{orderId}_{productId}`
+
+Order line items. Not populated by CSV import. Created by `grocery-api` `createOrder`.
+
+Fields:
+
+- `orderId`: number
+- `productId`: number
+- `preAuthPrice`: number — line total from checkout (`items[].totalPrice`)
+- `completePrice`: number
+- `preAuthAmount`: number — ordered quantity (`items[].quantity`; decimal for weightable products)
+- `completeAmount`: number
+
+### `users/{id}`
+
+User profile. Not populated by CSV import.
+
+Fields:
+
+- `id`: number
+- `fullName`: string
+- `phone`: string
+- `pt`: string
+
+### `addresses/{id}`
+
+User delivery address. Not populated by CSV import.
+
+Fields:
+
+- `id`: number
+- `city`: string
+- `street`: string
+- `number`: number
+- `apartment`: number or null
+- `postalCode`: number
+- `notes`: string or null
+- `userId`: number, FK to user
 
 ### `counters/{counterName}`
 
@@ -66,88 +123,6 @@ Fields:
 - `nextId`: number
 - `updatedAt`: Firestore server timestamp
 
-### `orders/{orderId}`
-
-Customer order header.
-
-Fields:
-
-- `orderId`: string
-- `customerId`: string
-- `status`: `draft`, `placed`, `paid`, `picking`, `ready_for_delivery`, `out_for_delivery`, `delivered`, `cancelled`
-- `priceListId`: string or null
-- `subtotal`: number
-- `deliveryFee`: number
-- `discountTotal`: number
-- `total`: number
-- `deliveryAddress`: map
-- `requestedDeliveryWindow`: map with `from` and `to`
-- `createdAt`: Firestore server timestamp
-- `updatedAt`: Firestore server timestamp
-
-### `orders/{orderId}/items/{orderItemId}`
-
-Order line item snapshot.
-
-Fields:
-
-- `productId`: string
-- `productDescSnapshot`: string
-- `categoryId`: string
-- `quantity`: number
-- `unitPrice`: number
-- `lineTotal`: number
-- `weightable`: boolean
-- `actualWeight`: number or null
-- `status`: `pending`, `picked`, `substituted`, `unavailable`, `cancelled`
-
-Order items intentionally store product and price snapshots so historical orders remain correct after product or price updates.
-
-### `deliveryData/{deliveryId}`
-
-Delivery execution data for an order.
-
-Fields:
-
-- `deliveryId`: string
-- `orderId`: string
-- `driverId`: string or null
-- `status`: `pending_assignment`, `assigned`, `picked_up`, `delivered`, `failed`, `cancelled`
-- `address`: map
-- `deliveryWindow`: map with `from` and `to`
-- `assignedAt`: Firestore timestamp or null
-- `pickedUpAt`: Firestore timestamp or null
-- `deliveredAt`: Firestore timestamp or null
-- `failedReason`: string or null
-- `updatedAt`: Firestore server timestamp
-
-### `customers/{customerId}`
-
-Customer profile.
-
-Fields:
-
-- `customerId`: string
-- `displayName`: string
-- `phone`: string
-- `email`: string or null
-- `defaultAddress`: map or null
-- `createdAt`: Firestore server timestamp
-- `updatedAt`: Firestore server timestamp
-
-### `drivers/{driverId}`
-
-Driver profile and availability.
-
-Fields:
-
-- `driverId`: string
-- `displayName`: string
-- `phone`: string
-- `active`: boolean
-- `currentStatus`: `available`, `busy`, `offline`
-- `updatedAt`: Firestore server timestamp
-
 ### `importLogs/{importLogId}`
 
 Operational import logs written by the CSV importer.
@@ -156,9 +131,9 @@ Fields:
 
 - `bucket`: string
 - `fileName`: string
-- `generation`: string or null, Storage object generation
+- `generation`: string or null
 - `status`: `succeeded` or `failed`
-- `result`: map, import counts on success (`rowCount`, `upsertedCount`, etc.)
+- `result`: map, import counts on success
 - `archivedFileName`: string, present on success
 - `error`: string, present on failure
 - `durationMs`: number
@@ -166,8 +141,7 @@ Fields:
 
 ## Query Patterns
 
-- Products by category: query `products` where `categoryId == value` and `active == true`
-- Current price for product: read `PriceLists/{productId}`
-- Customer orders: query `orders` by `customerId` and `createdAt`
-- Active orders: query `orders` by `status`
-- Driver deliveries: query `deliveryData` by `driverId` and `status`
+- Products by category: query `products` where `categoryId == value`
+- Subcategories of a category: query `categories` where `parentId == categoryId`
+- Current price for product: query `priceLists` where `productId == value` (latest by `modifyDate`)
+- Category by name: query `categories` where `description == value` and `parentId == null` (or specific parent)

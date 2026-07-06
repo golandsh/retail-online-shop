@@ -1,11 +1,22 @@
 {
-  "functions": {
-    "source": "../backend/services/grocery-import",
-    "runtime": "nodejs22",
-    "predeploy": [
-      "pnpm --prefix \"$RESOURCE_DIR\" run build"
-    ]
-  },
+  "functions": [
+    {
+      "source": "../backend/services/grocery-import",
+      "codebase": "grocery-import",
+      "runtime": "nodejs22",
+      "predeploy": [
+        "pnpm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    },
+    {
+      "source": "../backend/services/grocery-api",
+      "codebase": "grocery-api",
+      "runtime": "nodejs22",
+      "predeploy": [
+        "pnpm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
   "emulators": {
     "hub": {
       "port": 4400,
@@ -32,8 +43,6 @@
       "port": 4000,
       "host": "0.0.0.0"
     },
-
-
     "singleProjectMode": true
   },
   "storage": {
