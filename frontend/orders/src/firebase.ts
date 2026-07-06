@@ -22,4 +22,3 @@ export const useEmulator = storedEmulatorSetting !== null
 if (useEmulator) {
   connectAuthEmulator(auth, "http://localhost:9099");
 }
-
