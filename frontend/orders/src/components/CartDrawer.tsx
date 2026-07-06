@@ -27,13 +27,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   const handleCheckoutClick = () => {
-    // Check if profile address is complete
     const isAddressComplete =
       profile &&
       profile.fullName.trim() !== '' &&
-      profile.city.trim() !== '' &&
-      profile.street.trim() !== '' &&
-      profile.streetNumber.trim() !== '';
+      profile.addresses &&
+      profile.addresses.length > 0 &&
+      profile.addresses.some(
+        (addr) =>
+          addr.city.trim() !== '' &&
+          addr.street.trim() !== '' &&
+          addr.streetNumber.trim() !== ''
+      );
 
     if (!isAddressComplete) {
       alert('על מנת לבצע הזמנה, אנא מלא את פרטי הכתובת והמשלוח שלך תחילה.');

@@ -8,20 +8,35 @@ import { CartDrawer } from './components/CartDrawer';
 import { PaymentModal } from './components/PaymentModal';
 import { CardsModal } from './components/CardsModal';
 import { OrdersModal } from './components/OrdersModal';
-import { mockCategories, mockProducts } from './mockData';
 import './App.scss';
 
 const AppContent: React.FC = () => {
-  const { user, profile, cart, logout, orders, addToCart } = useApp();
+  const { user, profile, cart, logout, orders, addToCart, categories, products, loadingCatalog } = useApp();
   
+  const categoriesToUse = categories;
+  const productsToUse = products;
+
   // State variables for active tabs and modals
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('dairy');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
+
+  // Automatically update selectedCategoryId when categories load
+  useEffect(() => {
+    if (categories.length > 0) {
+      const exists = categories.some((c) => c.categoryId === selectedCategoryId);
+      if (!exists) {
+        const firstMain = categories.find((c) => !c.parentID);
+        if (firstMain) {
+          setSelectedCategoryId(firstMain.categoryId);
+        }
+      }
+    }
+  }, [categories, selectedCategoryId]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -41,6 +56,18 @@ const AppContent: React.FC = () => {
     return <LoginModal />;
   }
 
+  // If loading the catalog and we don't have categories yet, show loading spinner
+  if (loadingCatalog && categoriesToUse.length === 0) {
+    return (
+      <div className="orders-portal-loading" dir="rtl">
+        <div className="loading-spinner-container">
+          <div className="loading-spinner"></div>
+          <p>טוען את מגוון המוצרים...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate cart summary
   const cartItemsCount = cart.reduce((sum, item) => sum + (item.product.weightable ? (item.quantity || 1) : item.quantity), 0);
   const cartSubtotal = cart.reduce((sum, item) => {
@@ -49,8 +76,8 @@ const AppContent: React.FC = () => {
   }, 0);
 
   // Find active category hierarchy
-  const activeCategory = mockCategories.find((c) => c.categoryId === selectedCategoryId);
-  const subCategories = mockCategories.filter((c) => c.parentID === selectedCategoryId);
+  const activeCategory = categoriesToUse.find((c) => c.categoryId === selectedCategoryId);
+  const subCategories = categoriesToUse.filter((c) => c.parentID === selectedCategoryId);
   
   // Combine active category and its subcategories for rendering
   const categoriesToRender = [
@@ -62,9 +89,14 @@ const AppContent: React.FC = () => {
   const isAddressSet =
     profile &&
     profile.fullName.trim() !== '' &&
-    profile.city.trim() !== '' &&
-    profile.street.trim() !== '' &&
-    profile.streetNumber.trim() !== '';
+    profile.addresses &&
+    profile.addresses.length > 0 &&
+    profile.addresses.some(
+      (addr) =>
+        addr.city.trim() !== '' &&
+        addr.street.trim() !== '' &&
+        addr.streetNumber.trim() !== ''
+    );
 
   return (
     <div className="orders-portal" dir="rtl">
@@ -176,7 +208,7 @@ const AppContent: React.FC = () => {
       <div className="portal-workspace">
         {/* Sidebar vertical tabs */}
         <VerticalTabs
-          categories={mockCategories}
+          categories={categoriesToUse}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
         />
@@ -190,7 +222,7 @@ const AppContent: React.FC = () => {
 
           <div className="products-container">
             {categoriesToRender.map((category) => {
-              const products = mockProducts.filter((p) => p.categoryId === category.categoryId);
+              const products = productsToUse.filter((p) => p.categoryId === category.categoryId);
               if (products.length === 0) return null;
 
               return (
@@ -243,6 +275,10 @@ const AppContent: React.FC = () => {
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
+        onOpenUserModal={() => {
+          setIsPaymentModalOpen(false);
+          setIsUserModalOpen(true);
+        }}
       />
 
       {/* Saved Cards Modal */}

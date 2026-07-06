@@ -27,7 +27,7 @@ const MOCK_USER = {
 const MOCK_ADDRESS = {
     city: "רמת גן",
     street: "הרצל",
-    number: 12,
+    streetNumber: 12,
     apartment: 3,
     postalCode: 52522,
     notes: null as null,

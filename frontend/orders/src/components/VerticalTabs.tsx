@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Category } from '../types';
 import './VerticalTabs.scss';
 
@@ -16,12 +16,17 @@ export const VerticalTabs: React.FC<VerticalTabsProps> = ({
   const parents = categories.filter((c) => !c.parentID);
   
   // Keep track of which parent categories are expanded
-  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({
-    dairy: true,
-    bakery: true,
-    produce: true,
-    meat: true,
-  });
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
+
+  // Auto-expand parents when categories load
+  useEffect(() => {
+    const initialExpanded: Record<string, boolean> = {};
+    parents.forEach((parent) => {
+      initialExpanded[parent.categoryId] = true;
+    });
+    setExpandedParents(initialExpanded);
+  }, [categories]);
+
 
   const toggleExpand = (parentId: string, e: React.MouseEvent) => {
     e.stopPropagation();

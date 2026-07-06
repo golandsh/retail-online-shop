@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../AppContext';
-import type { UserProfile } from '../types';
+import type { Address } from '../types';
+
 import './UserModal.scss';
 
 interface UserModalProps {
@@ -10,25 +11,61 @@ interface UserModalProps {
 
 export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
   const { profile, updateProfile, user } = useApp();
-  const [formData, setFormData] = useState<UserProfile>({
-    fullName: '',
-    city: '',
-    street: '',
-    streetNumber: '',
-    apartment: '',
-    residencyType: 'בניין דירות',
-  });
+  const [fullName, setFullName] = useState('');
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(-1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   // Sync state with global context on open or change
   useEffect(() => {
     if (profile) {
-      setFormData(profile);
+      setFullName(profile.fullName || '');
+      setAddresses(profile.addresses || []);
     }
   }, [profile, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleAddAddress = () => {
+    const newAddr: Address = {
+      city: '',
+      street: '',
+      streetNumber: '',
+      apartment: '',
+      residencyType: 'בניין דירות',
+      postalCode: '',
+      notes: ''
+    };
+    const updated = [...addresses, newAddr];
+    setAddresses(updated);
+    setExpandedIndex(updated.length - 1); // Expand the new address
+  };
+
+  const handleDeleteAddress = (indexToDelete: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = addresses.filter((_, idx) => idx !== indexToDelete);
+    setAddresses(updated);
+    if (expandedIndex === indexToDelete) {
+      setExpandedIndex(null);
+    } else if (expandedIndex !== null && expandedIndex > indexToDelete) {
+      setExpandedIndex(expandedIndex - 1);
+    }
+  };
+
+  const handleAddressChange = (index: number, fields: Partial<Address>) => {
+    const updated = addresses.map((addr, idx) => {
+      if (idx === index) {
+        return { ...addr, ...fields };
+      }
+      return addr;
+    });
+    setAddresses(updated);
+  };
+
+  const toggleExpand = (index: number) => {
+    setExpandedIndex(expandedIndex === index ? null : index);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,35 +73,53 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
     setSuccess(false);
 
     // Validate required fields
-    if (!formData.fullName.trim()) {
+    if (!fullName.trim()) {
       setError('אנא הזן שם מלא');
       return;
     }
-    if (!formData.city.trim()) {
-      setError('אנא הזן עיר');
-      return;
-    }
-    if (!formData.street.trim()) {
-      setError('אנא הזן רחוב');
-      return;
-    }
-    if (!formData.streetNumber.trim()) {
-      setError('אנא הזן מספר בית');
+
+    if (addresses.length === 0) {
+      setError('אנא הוסף לפחות כתובת אחת למשלוח');
       return;
     }
 
-    updateProfile(formData);
+    // Validate all addresses
+    for (let i = 0; i < addresses.length; i++) {
+      const addr = addresses[i];
+      if (!addr.city.trim()) {
+        setError(`אנא הזן עיר בכתובת מס׳ ${i + 1}`);
+        setExpandedIndex(i);
+        return;
+      }
+      if (!addr.street.trim()) {
+        setError(`אנא הזן רחוב בכתובת מס׳ ${i + 1}`);
+        setExpandedIndex(i);
+        return;
+      }
+      if (!addr.streetNumber.trim()) {
+        setError(`אנא הזן מספר בית בכתובת מס׳ ${i + 1}`);
+        setExpandedIndex(i);
+        return;
+      }
+    }
+
+    updateProfile({
+      fullName,
+      addresses
+    });
+
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
       onClose();
     }, 1000);
   };
+
   return (
     <div className="modal-overlay">
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-card user-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>עדכון פרטי משתמש וכתובת משלוח</h3>
+          <h3>עדכון פרטי משתמש וכתובות משלוח</h3>
           <button type="button" className="close-x" onClick={onClose}>×</button>
         </div>
 
@@ -77,101 +132,168 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Full Name */}
-          <div className="form-group">
+          <div className="form-group name-group">
             <label htmlFor="fullName">שם מלא</label>
             <input
               id="fullName"
               type="text"
-              value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               placeholder="שם פרטי ומשפחה"
               required
             />
           </div>
 
-          {/* Residency Type Image Buttons (At top of address fields) */}
-          <div className="form-group residency-type-group">
-            <label>סוג המגורים</label>
-            <div className="residency-options">
-              <button
-                type="button"
-                className={`residency-option-btn ${formData.residencyType === 'בניין דירות' ? 'active' : ''}`}
-                onClick={() => setFormData({ ...formData, residencyType: 'בניין דירות' })}
-              >
-                <span className="residency-icon">🏢</span>
-                <span className="residency-label">דירה בבניין</span>
-              </button>
-
-              <button
-                type="button"
-                className={`residency-option-btn ${formData.residencyType === 'בית פרטי' ? 'active' : ''}`}
-                onClick={() => setFormData({ ...formData, residencyType: 'בית פרטי' })}
-              >
-                <span className="residency-icon">🏠</span>
-                <span className="residency-label">בית פרטי</span>
-              </button>
-
-              <button
-                type="button"
-                className={`residency-option-btn ${formData.residencyType === 'משרד' ? 'active' : ''}`}
-                onClick={() => setFormData({ ...formData, residencyType: 'משרד' })}
-              >
-                <span className="residency-icon">💼</span>
-                <span className="residency-label">משרד / עסק</span>
-              </button>
-            </div>
+          {/* Addresses list label */}
+          <div className="addresses-section-header">
+            <h4>כתובות למשלוח ({addresses.length})</h4>
           </div>
 
-          {/* City & Street */}
-          <div className="form-row">
-            <div className="form-group flex-2">
-              <label htmlFor="city">עיר</label>
-              <input
-                id="city"
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="לדוגמה: תל אביב"
-                required
-              />
-            </div>
-            <div className="form-group flex-3">
-              <label htmlFor="street">רחוב</label>
-              <input
-                id="street"
-                type="text"
-                value={formData.street}
-                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-                placeholder="לדוגמה: אבן גבירול"
-                required
-              />
-            </div>
+          <div className="addresses-list-container">
+            {addresses.map((addr, idx) => {
+              const isExpanded = expandedIndex === idx;
+              const hasFields = addr.street || addr.city;
+              const summaryText = hasFields
+                ? `${addr.street} ${addr.streetNumber}${addr.apartment ? `, דירה ${addr.apartment}` : ''}, ${addr.city}`
+                : `כתובת חדשה (לחץ להזנת פרטים)`;
+
+              return (
+                <div key={idx} className={`address-accordion-item ${isExpanded ? 'expanded' : ''}`}>
+                  {/* Summary/Header */}
+                  <div className="accordion-summary-header" onClick={() => toggleExpand(idx)}>
+                    <div className="summary-title-wrapper">
+                      <span className="accordion-icon">📍</span>
+                      <span className="accordion-title-text">{summaryText}</span>
+                    </div>
+                    <div className="summary-actions-wrapper">
+                      <button
+                        type="button"
+                        className="delete-address-btn"
+                        onClick={(e) => handleDeleteAddress(idx, e)}
+                        title="מחק כתובת זו"
+                      >
+                        🗑️
+                      </button>
+                      <span className="expand-indicator">{isExpanded ? '▲' : '▼'}</span>
+                    </div>
+                  </div>
+
+                  {/* Fields Panel (Expanded) */}
+                  {isExpanded && (
+                    <div className="accordion-details-panel">
+                      {/* Residency Type Image Buttons */}
+                      <div className="form-group residency-type-group">
+                        <label>סוג המגורים</label>
+                        <div className="residency-options">
+                          <button
+                            type="button"
+                            className={`residency-option-btn ${addr.residencyType === 'בניין דירות' ? 'active' : ''}`}
+                            onClick={() => handleAddressChange(idx, { residencyType: 'בניין דירות' })}
+                          >
+                            <span className="residency-icon">🏢</span>
+                            <span className="residency-label">דירה בבניין</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`residency-option-btn ${addr.residencyType === 'בית פרטי' ? 'active' : ''}`}
+                            onClick={() => handleAddressChange(idx, { residencyType: 'בית פרטי' })}
+                          >
+                            <span className="residency-icon">🏠</span>
+                            <span className="residency-label">בית פרטי</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`residency-option-btn ${addr.residencyType === 'משרד' ? 'active' : ''}`}
+                            onClick={() => handleAddressChange(idx, { residencyType: 'משרד' })}
+                          >
+                            <span className="residency-icon">💼</span>
+                            <span className="residency-label">משרד / עסק</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* City & Street */}
+                      <div className="form-row">
+                        <div className="form-group flex-2">
+                          <label>עיר</label>
+                          <input
+                            type="text"
+                            value={addr.city}
+                            onChange={(e) => handleAddressChange(idx, { city: e.target.value })}
+                            placeholder="לדוגמה: תל אביב"
+                            required
+                          />
+                        </div>
+                        <div className="form-group flex-3">
+                          <label>רחוב</label>
+                          <input
+                            type="text"
+                            value={addr.street}
+                            onChange={(e) => handleAddressChange(idx, { street: e.target.value })}
+                            placeholder="לדוגמה: אבן גבירול"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* House Number, Apartment & Postal Code */}
+                      <div className="form-row narrow-fields">
+                        <div className="form-group flex-number">
+                          <label>מספר בית</label>
+                          <input
+                            type="text"
+                            value={addr.streetNumber}
+                            onChange={(e) => handleAddressChange(idx, { streetNumber: e.target.value })}
+                            placeholder="למשל: 14"
+                            required
+                          />
+                        </div>
+                        <div className="form-group flex-apartment">
+                          <label>דירה / כניסה</label>
+                          <input
+                            type="text"
+                            value={addr.apartment}
+                            onChange={(e) => handleAddressChange(idx, { apartment: e.target.value })}
+                            placeholder="אופציונלי"
+                          />
+                        </div>
+                        <div className="form-group flex-postal">
+                          <label>מיקוד</label>
+                          <input
+                            type="text"
+                            value={addr.postalCode || ''}
+                            onChange={(e) => handleAddressChange(idx, { postalCode: e.target.value })}
+                            placeholder="אופציונלי"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Address Note */}
+                      <div className="form-group notes-group">
+                        <label>הערה לכתובת (אינטרקום, קוד כניסה וכדומה)</label>
+                        <input
+                          type="text"
+                          value={addr.notes || ''}
+                          onChange={(e) => handleAddressChange(idx, { notes: e.target.value })}
+                          placeholder="לדוגמה: קוד כניסה #1234, להשאיר ליד הדלת"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* House Number & Apartment */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="streetNumber">מספר בית</label>
-              <input
-                id="streetNumber"
-                type="text"
-                value={formData.streetNumber}
-                onChange={(e) => setFormData({ ...formData, streetNumber: e.target.value })}
-                placeholder="למשל: 14"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="apartment">דירה / כניסה</label>
-              <input
-                id="apartment"
-                type="text"
-                value={formData.apartment}
-                onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
-                placeholder="דירה / כניסה (אופציונלי)"
-              />
-            </div>
-          </div>
+          <button
+            type="button"
+            className="add-address-btn"
+            onClick={handleAddAddress}
+          >
+            ➕ הוסף כתובת חדשה
+          </button>
 
           <div className="modal-actions">
             <button type="button" className="cancel-btn" onClick={onClose}>
@@ -186,3 +308,5 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
+
+

@@ -1,17 +1,25 @@
 import { describe, it, expect } from 'vitest';
 
 // Simulating address completion verification
+// Simulating address completion verification
 function isAddressComplete(profile: {
   fullName: string;
-  city: string;
-  street: string;
-  streetNumber: string;
+  addresses: Array<{
+    city: string;
+    street: string;
+    streetNumber: string;
+  }>;
 }) {
   return (
     profile.fullName.trim() !== '' &&
-    profile.city.trim() !== '' &&
-    profile.street.trim() !== '' &&
-    profile.streetNumber.trim() !== ''
+    profile.addresses &&
+    profile.addresses.length > 0 &&
+    profile.addresses.some(
+      (addr) =>
+        addr.city.trim() !== '' &&
+        addr.street.trim() !== '' &&
+        addr.streetNumber.trim() !== ''
+    )
   );
 }
 
@@ -34,9 +42,13 @@ describe('Profile address completion check', () => {
   it('identifies incomplete profiles correctly', () => {
     const incomplete = {
       fullName: 'ישראל ישראלי',
-      city: '',
-      street: 'אבן גבירול',
-      streetNumber: '',
+      addresses: [
+        {
+          city: '',
+          street: 'אבן גבירול',
+          streetNumber: '',
+        }
+      ],
     };
     expect(isAddressComplete(incomplete)).toBe(false);
   });
@@ -44,9 +56,13 @@ describe('Profile address completion check', () => {
   it('identifies completed profiles correctly', () => {
     const complete = {
       fullName: 'ישראל ישראלי',
-      city: 'תל אביב',
-      street: 'אבן גבירול',
-      streetNumber: '14',
+      addresses: [
+        {
+          city: 'תל אביב',
+          street: 'אבן גבירול',
+          streetNumber: '14',
+        }
+      ],
     };
     expect(isAddressComplete(complete)).toBe(true);
   });

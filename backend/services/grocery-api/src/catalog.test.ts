@@ -190,7 +190,7 @@ describe("fetchCatalog", () => {
                 {
                     city: "Tel Aviv",
                     street: "Herzl",
-                    number: 1,
+                    streetNumber: 1,
                     apartment: 3,
                     postalCode: 12345,
                     notes: null,
@@ -209,7 +209,7 @@ describe("fetchCatalog", () => {
             address: {
                 city: "Tel Aviv",
                 street: "Herzl",
-                number: 1,
+                streetNumber: 1,
                 apartment: 3,
                 postalCode: 12345,
                 notes: null,

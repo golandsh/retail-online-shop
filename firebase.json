@@ -22,5 +22,33 @@
   },
   "firestore": {
     "rules": "online-shop-firebase-local/firestore.rules"
+  },
+  "hosting": {
+    "public": "frontend/orders/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/getCatalog",
+        "function": {
+          "functionId": "getCatalog",
+          "region": "us-east1"
+        }
+      },
+      {
+        "source": "/api/createOrder",
+        "function": {
+          "functionId": "createOrder",
+          "region": "us-east1"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

@@ -17,6 +17,9 @@
 .modal-card {
   width: 100%;
   max-width: 540px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: 16px;
@@ -32,6 +35,7 @@
     transform: scale(0.95);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -70,6 +74,8 @@
 
 .modal-form {
   padding: 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .form-error {
@@ -96,7 +102,7 @@
   margin-bottom: 20px;
   font-size: 0.9rem;
   color: #4b5563;
-  
+
   strong {
     color: var(--accent);
   }
@@ -104,6 +110,7 @@
 
 .form-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
@@ -129,7 +136,8 @@
     text-align: right;
   }
 
-  input, select {
+  input,
+  select {
     background: #ffffff;
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -191,7 +199,7 @@
   &:hover {
     border-color: #cbd5e1;
     background: #f8fafc;
-    
+
     .residency-icon {
       transform: scale(1.1);
     }
@@ -205,10 +213,170 @@
     .residency-label {
       color: var(--accent);
     }
-    
+
     .residency-icon {
       transform: scale(1.1);
     }
+  }
+}
+
+/* Scrollable layout for UserModal */
+.user-modal-card {
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+
+  .modal-form {
+    overflow-y: auto;
+    flex: 1;
+    padding: 24px;
+  }
+}
+
+.addresses-section-header {
+  margin: 24px 0 12px 0;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 16px;
+
+  h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #111827;
+  }
+}
+
+.addresses-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.address-accordion-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+
+  &.expanded {
+    border-color: var(--accent);
+    box-shadow: 0 4px 12px rgba(13, 92, 86, 0.05);
+  }
+}
+
+.accordion-summary-header {
+  padding: 14px 16px;
+  background: #f9fafb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+
+  .summary-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .accordion-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .accordion-title-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+  }
+
+  .summary-actions-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: 12px;
+  }
+
+  .delete-address-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    line-height: 1;
+
+    &:hover {
+      background: #fee2e2;
+    }
+  }
+
+  .expand-indicator {
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: bold;
+  }
+}
+
+.accordion-details-panel {
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+  animation: slide-down 0.2s ease-out;
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.add-address-btn {
+  width: 100%;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 24px;
+
+  &:hover {
+    background: var(--accent-light);
+    color: var(--accent-hover);
+    border-color: var(--accent-hover);
   }
 }
 
@@ -246,5 +414,27 @@
       background: var(--accent-hover);
       box-shadow: 0 4px 12px var(--accent-glow);
     }
+  }
+}
+
+.form-row.narrow-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: flex-start;
+
+  .flex-number {
+    flex: 1 1 60px !important;
+    max-width: 90px;
+  }
+
+  .flex-apartment {
+    flex: 1 1 80px !important;
+    max-width: 100px;
+  }
+
+  .flex-postal {
+    flex: 1 1 90px !important;
+    max-width: 120px;
   }
 }

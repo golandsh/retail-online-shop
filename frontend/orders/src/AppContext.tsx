@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product, CartItem, UserProfile, CreditCard, Order } from './types';
-import { auth } from './firebase';
+import type { Product, Category, CartItem, UserProfile, CreditCard, Order, Address } from './types';
+import { auth, useEmulator } from './firebase';
 
 interface AppContextType {
   user: { phone: string } | null;
@@ -8,6 +8,9 @@ interface AppContextType {
   cart: CartItem[];
   savedCards: CreditCard[];
   orders: Order[];
+  categories: Category[];
+  products: Product[];
+  loadingCatalog: boolean;
   login: (phone: string) => void;
   logout: () => void;
   updateProfile: (profile: UserProfile) => void;
@@ -16,7 +19,7 @@ interface AppContextType {
   clearCart: () => void;
   saveCreditCard: (card: Omit<CreditCard, 'id' | 'lastFour'> & { cardNumber: string }) => CreditCard;
   deleteCreditCard: (cardId: string) => void;
-  createNewOrder: (notes: string, card: CreditCard) => Order;
+  createNewOrder: (notes: string, card: CreditCard, selectedAddress: Address) => Order;
 }
 
 const getCookie = (name: string): string | null => {
@@ -47,6 +50,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [savedCards, setSavedCards] = useState<CreditCard[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
 
   const logout = () => {
     setUser(null);
@@ -58,31 +64,114 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     auth.signOut().catch((err) => console.error("Firebase signOut error", err));
   };
 
+  const fetchAndSetCatalog = async (phone?: string) => {
+    setLoadingCatalog(true);
+    try {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "online-shop-bf396";
+
+      const baseUrl = (isLocalhost && !useEmulator)
+        ? `https://us-east1-${projectId}.cloudfunctions.net`
+        : "/api";
+
+      let url = `${baseUrl}/getCatalog`;
+      if (phone) {
+        let apiPhone = phone.trim();
+        if (apiPhone.startsWith('+972')) {
+          apiPhone = '0' + apiPhone.substring(4);
+        }
+        url += `?phone=${encodeURIComponent(apiPhone)}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch catalog: ${res.statusText}`);
+      }
+      const data = await res.json();
+      if (data.products) {
+        setProducts(data.products);
+      }
+      if (data.categories) {
+        setCategories(data.categories);
+      }
+
+      if (phone) {
+        // Load local profile to get any locally added addresses
+        const localProfileStr = localStorage.getItem(`profile_${phone}`);
+        let localProfile: UserProfile | null = null;
+        if (localProfileStr) {
+          try {
+            localProfile = JSON.parse(localProfileStr);
+          } catch (e) {
+            console.error("Failed to parse local profile", e);
+          }
+        }
+
+        if (data.user) {
+          const backendAddresses: Address[] = [];
+          if (data.user.address) {
+            backendAddresses.push({
+              id: data.user.address.id || 1,
+              city: data.user.address.city || '',
+              street: data.user.address.street || '',
+              streetNumber: data.user.address.streetNumber ? String(data.user.address.streetNumber) : '',
+              apartment: data.user.address.apartment ? String(data.user.address.apartment) : '',
+              residencyType: data.user.pt || 'בניין דירות',
+              postalCode: data.user.address.postalCode ? String(data.user.address.postalCode) : '',
+              notes: data.user.address.notes || '',
+            });
+          }
+
+          let mergedAddresses = [...backendAddresses];
+          if (localProfile && Array.isArray(localProfile.addresses)) {
+            localProfile.addresses.forEach((localAddr) => {
+              const exists = backendAddresses.some(
+                (bAddr) =>
+                  bAddr.city.toLowerCase() === localAddr.city.toLowerCase() &&
+                  bAddr.street.toLowerCase() === localAddr.street.toLowerCase() &&
+                  bAddr.streetNumber === localAddr.streetNumber &&
+                  bAddr.apartment === localAddr.apartment
+              );
+              if (!exists) {
+                mergedAddresses.push(localAddr);
+              }
+            });
+          }
+
+          const fetchedProfile: UserProfile = {
+            fullName: data.user.fullName || localProfile?.fullName || '',
+            addresses: mergedAddresses,
+          };
+          setProfile(fetchedProfile);
+          localStorage.setItem('orders_profile', JSON.stringify(fetchedProfile));
+          localStorage.setItem(`profile_${phone}`, JSON.stringify(fetchedProfile));
+        } else {
+          if (localProfile) {
+            setProfile(localProfile);
+            localStorage.setItem('orders_profile', JSON.stringify(localProfile));
+          } else {
+            const newProfile: UserProfile = {
+              fullName: '',
+              addresses: [],
+            };
+            setProfile(newProfile);
+            localStorage.setItem('orders_profile', JSON.stringify(newProfile));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading catalog:", error);
+    } finally {
+      setLoadingCatalog(false);
+    }
+  };
+
   const login = (phone: string) => {
     const sessionUser = { phone };
     setUser(sessionUser);
     localStorage.setItem('orders_user', JSON.stringify(sessionUser));
     setCookie('orders_session', JSON.stringify(sessionUser), 30);
-
-    // Try loading existing profile for this phone number if exists
-    const localProfile = localStorage.getItem(`profile_${phone}`);
-    if (localProfile) {
-      const parsed = JSON.parse(localProfile);
-      setProfile(parsed);
-      localStorage.setItem('orders_profile', JSON.stringify(parsed));
-    } else {
-      // Initialize a blank/partially blank profile
-      const newProfile: UserProfile = {
-        fullName: '',
-        city: '',
-        street: '',
-        streetNumber: '',
-        apartment: '',
-        residencyType: 'בניין דירות'
-      };
-      setProfile(newProfile);
-      localStorage.setItem('orders_profile', JSON.stringify(newProfile));
-    }
+    fetchAndSetCatalog(phone);
   };
 
   // Load saved credentials/cards/profile from LocalStorage on mount
@@ -98,13 +187,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const savedCardsStr = localStorage.getItem('orders_cards');
     const savedOrdersStr = localStorage.getItem('orders_history');
 
+    let restoredPhone = '';
     if (savedUserStr) {
-      setUser(JSON.parse(savedUserStr));
+      const parsed = JSON.parse(savedUserStr);
+      setUser(parsed);
+      restoredPhone = parsed.phone;
     } else {
       try {
         const parsed = JSON.parse(sessionCookie);
         setUser(parsed);
         localStorage.setItem('orders_user', sessionCookie);
+        restoredPhone = parsed.phone;
       } catch (e) {
         logout();
         return;
@@ -128,6 +221,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('orders_cards', JSON.stringify([defaultCard]));
     }
     if (savedOrdersStr) setOrders(JSON.parse(savedOrdersStr));
+
+    if (restoredPhone) {
+      fetchAndSetCatalog(restoredPhone);
+    } else {
+      fetchAndSetCatalog();
+    }
   }, []);
 
   const updateProfile = (updated: UserProfile) => {
@@ -198,7 +297,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('orders_cards', JSON.stringify(updated));
   };
 
-  const createNewOrder = (notes: string, card: CreditCard): Order => {
+  const createNewOrder = (notes: string, card: CreditCard, selectedAddress: Address): Order => {
     if (!profile) throw new Error("No customer profile found");
 
     // Calculate subtotal
@@ -222,7 +321,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       preAuthPrice,
       notes,
       createdAt: new Date().toISOString(),
-      profileSnapshot: { ...profile },
+      profileSnapshot: {
+        fullName: profile.fullName,
+        city: selectedAddress.city,
+        street: selectedAddress.street,
+        streetNumber: selectedAddress.streetNumber,
+        apartment: selectedAddress.apartment,
+        residencyType: selectedAddress.residencyType,
+        notes: selectedAddress.notes || '',
+      },
       cardLastFour: card.lastFour
     };
 
@@ -241,6 +348,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       cart,
       savedCards,
       orders,
+      categories,
+      products,
+      loadingCatalog,
       login,
       logout,
       updateProfile,
