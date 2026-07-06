@@ -10,6 +10,7 @@
     "clean": "turbo run clean",
     "docker:up": "docker compose -f online-shop-firebase-local/docker-compose.yml up -d",
     "docker:down": "docker compose -f online-shop-firebase-local/docker-compose.yml down",
+    "docker:restart": "docker restart online-shop-firebase-local",
     "docker:build": "docker compose -f online-shop-firebase-local/docker-compose.yml build",
     "firebase:login": "firebase login",
     "deploy": "firebase deploy",

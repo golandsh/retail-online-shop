@@ -4,6 +4,7 @@ export interface ImporterConfig {
     storageBucket: string;
     importFolder: string;
     historyFolder: string;
+    failureEmailEnabled: boolean;
     failureEmailRecipients: string[];
     smtp: {
         host?: string;
@@ -25,10 +26,20 @@ const parseRecipients = (value?: string): string[] =>
         .map((recipient) => recipient.trim())
         .filter(Boolean);
 
+const parseBooleanFlag = (value: string | undefined, defaultValue: boolean): boolean => {
+    if (value === undefined || value.trim() === "") {
+        return defaultValue;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    return normalized === "1" || normalized === "true" || normalized === "yes";
+};
+
 export const getImporterConfig = (): ImporterConfig => ({
     storageBucket: process.env.IMPORT_STORAGE_BUCKET ?? "online-shop-bf396.firebasestorage.app",
     importFolder: withTrailingSlash(process.env.IMPORT_FOLDER ?? "imports/prices/"),
     historyFolder: withTrailingSlash(process.env.HISTORY_FOLDER ?? "imports/history/"),
+    failureEmailEnabled: parseBooleanFlag(process.env.IMPORT_FAILURE_EMAIL_ENABLED, false),
     failureEmailRecipients: parseRecipients(process.env.IMPORT_FAILURE_EMAIL_TO),
     smtp: {
         host: process.env.SMTP_HOST,
