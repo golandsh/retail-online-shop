@@ -1,8 +1,45 @@
-node_modules
-.turbo
-dist
+# Dependencies
+node_modules/
 
-# Local env files
+# Production / Build outputs
+dist/
+dist-ssr/
+lib/
+coverage/
+
+# Tooling and caches
+.turbo/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*-debug.log
+
+# Firebase local
+firebase-export-*
+backend/services/grocery-import/.firebaserc
+
+# Environment files
 .env
+.env.*
 .env.local
 .env.*.local
+!.env.example
+*.local
+
+# IDE / System files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
