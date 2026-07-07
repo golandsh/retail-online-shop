@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Product, Category, CartItem, UserProfile, CreditCard, Order, Address } from './types';
 import { auth, useEmulator, db } from './firebase';
 import { doc, setDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { calculatePrices } from './utils/prices';
 
 interface AppContextType {
   user: { phone: string } | null;
@@ -346,20 +347,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!profile) throw new Error("No customer profile found");
     if (!user) throw new Error("User must be logged in to create an order");
 
-    // Calculate subtotal
-    const subtotal = cart.reduce((sum, item) => {
-      const factor = item.product.weightable ? item.weight : item.quantity;
-      return sum + item.product.price * factor;
-    }, 0);
-
-    // preAuthPrice is calculated as subtotal + 10% safety margin for weightable items to pre-authorize
-    const weightableTotal = cart
-      .filter((item) => item.product.weightable)
-      .reduce((sum, item) => sum + item.product.price * item.weight, 0);
-
-    const regularTotal = subtotal - weightableTotal;
-    const safetyMargin = weightableTotal * 0.10;
-    const preAuthPrice = Number((regularTotal + weightableTotal + safetyMargin).toFixed(2));
+    // Calculate prices using helper and feature flag
+    const enableSafetyMargin = import.meta.env.VITE_ENABLE_SAFETY_MARGIN === 'true';
+    const { preAuthPrice } = calculatePrices(cart, enableSafetyMargin);
 
     const newOrder: Order = {
       orderId: `order-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
