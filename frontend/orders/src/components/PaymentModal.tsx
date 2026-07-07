@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../AppContext';
 import type { CreditCard, Order } from '../types';
+import { calculatePrices } from '../utils/prices';
 
 import './PaymentModal.scss';
 
@@ -53,18 +54,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onO
 
   if (!isOpen) return null;
 
-  // Calculate prices
-  const subtotal = cart.reduce((sum, item) => {
-    const amount = item.product.weightable ? item.weight : item.quantity;
-    return sum + item.product.price * amount;
-  }, 0);
-
-  const weightableTotal = cart
-    .filter((item) => item.product.weightable)
-    .reduce((sum, item) => sum + item.product.price * item.weight, 0);
-
-  const safetyMargin = weightableTotal * 0.10;
-  const preAuthPrice = Number((subtotal + safetyMargin).toFixed(2));
+  // Calculate prices using helper and feature flag
+  const enableSafetyMargin = import.meta.env.VITE_ENABLE_SAFETY_MARGIN === 'true';
+  const { subtotal, safetyMargin, preAuthPrice } = calculatePrices(cart, enableSafetyMargin);
 
   const handlePay = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Category, Product, CartItem } from '../types';
+import { calculatePrices } from '../utils/prices';
 
 // Business logic function to verify categories hierarchy
 function getCategoriesWithChildren(categories: Category[]) {
@@ -11,26 +12,6 @@ function getCategoriesWithChildren(categories: Category[]) {
       children
     };
   });
-}
-
-// Business logic to calculate subtotal and pre-auth price
-function calculatePrices(cart: CartItem[]) {
-  const subtotal = cart.reduce((sum, item) => {
-    const amount = item.product.weightable ? item.weight : item.quantity;
-    return sum + item.product.price * amount;
-  }, 0);
-
-  const weightableTotal = cart
-    .filter((item) => item.product.weightable)
-    .reduce((sum, item) => sum + item.product.price * item.weight, 0);
-
-  const safetyMargin = weightableTotal * 0.10;
-  const preAuthPrice = Number((subtotal + safetyMargin).toFixed(2));
-
-  return {
-    subtotal: Number(subtotal.toFixed(2)),
-    preAuthPrice
-  };
 }
 
 describe('Category Hierarchy System', () => {
@@ -88,12 +69,12 @@ describe('Checkout price calculation business logic', () => {
     expect(preAuthPrice).toBe(22.50); // No weightable item, no buffer
   });
 
-  it('calculates price correctly with weightable items, adding 10% safety buffer', () => {
+  it('calculates price correctly with weightable items, adding 10% safety buffer when enabled', () => {
     const cart: CartItem[] = [
       { product: bananas, quantity: 0, weight: 2.5 }
     ];
 
-    const { subtotal, preAuthPrice } = calculatePrices(cart);
+    const { subtotal, preAuthPrice } = calculatePrices(cart, true);
 
     const expectedSubtotal = 2.5 * 4.20; // 10.5
     const expectedBuffer = expectedSubtotal * 0.10; // 1.05
@@ -103,15 +84,40 @@ describe('Checkout price calculation business logic', () => {
     expect(preAuthPrice).toBe(Number(expectedPreAuth.toFixed(2)));
   });
 
-  it('calculates mixed cart totals correctly (only applying buffer to weightable portion)', () => {
+  it('calculates price correctly with weightable items, adding NO safety buffer when disabled', () => {
+    const cart: CartItem[] = [
+      { product: bananas, quantity: 0, weight: 2.5 }
+    ];
+
+    const { subtotal, preAuthPrice } = calculatePrices(cart, false);
+
+    const expectedSubtotal = 2.5 * 4.20; // 10.5
+
+    expect(subtotal).toBe(expectedSubtotal);
+    expect(preAuthPrice).toBe(expectedSubtotal); // No safety buffer added
+  });
+
+  it('calculates mixed cart totals correctly (only applying buffer to weightable portion when enabled)', () => {
     const cart: CartItem[] = [
       { product: milk, quantity: 2, weight: 0 }, // 2 * 7.5 = 15.00
       { product: bananas, quantity: 0, weight: 1.5 } // 1.5 * 4.2 = 6.30 (buffer = 0.63)
     ];
 
-    const { subtotal, preAuthPrice } = calculatePrices(cart);
+    const { subtotal, preAuthPrice } = calculatePrices(cart, true);
 
     expect(subtotal).toBe(21.30); // 15.00 + 6.30
     expect(preAuthPrice).toBe(21.93); // 21.30 + 0.63
+  });
+
+  it('calculates mixed cart totals correctly (applying NO buffer when disabled)', () => {
+    const cart: CartItem[] = [
+      { product: milk, quantity: 2, weight: 0 }, // 2 * 7.5 = 15.00
+      { product: bananas, quantity: 0, weight: 1.5 } // 1.5 * 4.2 = 6.30
+    ];
+
+    const { subtotal, preAuthPrice } = calculatePrices(cart, false);
+
+    expect(subtotal).toBe(21.30); // 15.00 + 6.30
+    expect(preAuthPrice).toBe(21.30); // No safety buffer added
   });
 });
