@@ -3,6 +3,7 @@ import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 import { UploadModal } from './components/UploadModal';
+import { OrdersGrid } from './components/OrdersGrid';
 import { t } from './strings';
 import './App.scss';
 
@@ -11,6 +12,7 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'orders' | 'upload'>('orders');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -99,6 +101,23 @@ function App() {
           <h2>{t('appTitle')}</h2>
         </div>
 
+        <div className="navbar-tabs">
+          <button
+            type="button"
+            className={`navbar-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
+            onClick={() => setActiveTab('orders')}
+          >
+            📋 {t('tabOrders')}
+          </button>
+          <button
+            type="button"
+            className={`navbar-tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
+            onClick={() => setActiveTab('upload')}
+          >
+            📦 {t('tabUpload')}
+          </button>
+        </div>
+
         <div className="navbar-user-section">
           {user.photoURL && (
             <img
@@ -120,29 +139,33 @@ function App() {
         </div>
       </nav>
 
-      <main className="dashboard-content">
-        <div className="dashboard-card">
-          <div className="card-illustration">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="hero-svg">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-              <line x1="15" y1="3" x2="15" y2="21" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="3" y1="15" x2="21" y2="15" />
-            </svg>
+      <main className={`dashboard-content ${activeTab === 'orders' ? 'tab-orders-layout' : ''}`}>
+        {activeTab === 'orders' ? (
+          <OrdersGrid />
+        ) : (
+          <div className="dashboard-card">
+            <div className="card-illustration">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="hero-svg">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                <line x1="15" y1="3" x2="15" y2="21" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="3" y1="15" x2="21" y2="15" />
+              </svg>
+            </div>
+            <h3>{t('uploadButtonText')}</h3>
+            <p className="card-description">
+              ניתן להעלות קובצי נתונים בפורמט CSV או JSON לעדכון מלאי המוצרים, לקוחות, או הגדרות מערכת ב-Firebase Storage.
+            </p>
+            <button
+              type="button"
+              className="btn btn-large"
+              onClick={() => setIsModalOpen(true)}
+            >
+              {t('uploadButtonText')}
+            </button>
           </div>
-          <h3>{t('uploadButtonText')}</h3>
-          <p className="card-description">
-            ניתן להעלות קובצי נתונים בפורמט CSV או JSON לעדכון מלאי המוצרים, לקוחות, או הגדרות מערכת ב-Firebase Storage.
-          </p>
-          <button
-            type="button"
-            className="btn btn-large"
-            onClick={() => setIsModalOpen(true)}
-          >
-            {t('uploadButtonText')}
-          </button>
-        </div>
+        )}
       </main>
 
       <UploadModal

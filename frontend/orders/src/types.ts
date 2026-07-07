@@ -17,6 +17,7 @@ export interface CartItem {
   product: Product;
   quantity: number; // for count-based products
   weight: number;    // for weightable products (in kg)
+  actualWeight?: number;
 }
 
 export interface Address {
@@ -47,6 +48,9 @@ export interface CreditCard {
 
 export interface Order {
   orderId: string;
+  phone?: string;
+  status?: 'open' | 'completed' | 'cancelled';
+  finalPrice?: number;
   items: CartItem[];
   preAuthPrice: number;
   notes: string;

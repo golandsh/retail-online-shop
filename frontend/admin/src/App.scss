@@ -104,6 +104,42 @@
     z-index: 100;
   }
 
+  .navbar-tabs {
+    display: flex;
+    gap: 8px;
+    background-color: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+  }
+
+  .navbar-tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--sans-serif);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover {
+      color: var(--text-primary);
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    &.active {
+      color: #fff;
+      background-color: var(--accent);
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+  }
+
   .navbar-brand {
     display: flex;
     align-items: center;
@@ -149,6 +185,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
+
+    &.tab-orders-layout {
+      display: block;
+      padding: 40px 40px;
+    }
   }
 
   .dashboard-card {

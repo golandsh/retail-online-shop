@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Product, Category, CartItem, UserProfile, CreditCard, Order, Address } from './types';
-import { auth, useEmulator } from './firebase';
+import { auth, useEmulator, db } from './firebase';
+import { doc, setDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface AppContextType {
   user: { phone: string } | null;
@@ -19,7 +20,7 @@ interface AppContextType {
   clearCart: () => void;
   saveCreditCard: (card: Omit<CreditCard, 'id' | 'lastFour'> & { cardNumber: string }) => CreditCard;
   deleteCreditCard: (cardId: string) => void;
-  createNewOrder: (notes: string, card: CreditCard, selectedAddress: Address) => Order;
+  createNewOrder: (notes: string, card: CreditCard, selectedAddress: Address) => Promise<Order>;
 }
 
 const getCookie = (name: string): string | null => {
@@ -148,7 +149,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const savedCardsStr = localStorage.getItem('orders_cards');
-    const savedOrdersStr = localStorage.getItem('orders_history');
 
     let restoredPhone = '';
     try {
@@ -176,14 +176,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSavedCards([defaultCard]);
       localStorage.setItem('orders_cards', JSON.stringify([defaultCard]));
     }
-    if (savedOrdersStr) setOrders(JSON.parse(savedOrdersStr));
-
     if (restoredPhone) {
       fetchAndSetCatalog(restoredPhone);
     } else {
       fetchAndSetCatalog();
     }
   }, []);
+
+  // Subscribe to customer orders in Firestore in real-time
+  useEffect(() => {
+    if (!user?.phone) {
+      setOrders([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'orders'),
+      where('phone', '==', user.phone)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched: Order[] = [];
+      snapshot.forEach((docSnap) => {
+        fetched.push({
+          ...docSnap.data(),
+          orderId: docSnap.id
+        } as Order);
+      });
+      // Sort by creation date descending
+      fetched.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setOrders(fetched);
+    }, (err) => {
+      console.error("Firestore customer orders subscription failed", err);
+    });
+
+    return () => unsubscribe();
+  }, [user?.phone]);
 
   const updateProfile = async (updated: UserProfile) => {
     if (!user?.phone) return;
@@ -314,8 +342,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('orders_cards', JSON.stringify(updated));
   };
 
-  const createNewOrder = (notes: string, card: CreditCard, selectedAddress: Address): Order => {
+  const createNewOrder = async (notes: string, card: CreditCard, selectedAddress: Address): Promise<Order> => {
     if (!profile) throw new Error("No customer profile found");
+    if (!user) throw new Error("User must be logged in to create an order");
 
     // Calculate subtotal
     const subtotal = cart.reduce((sum, item) => {
@@ -334,6 +363,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newOrder: Order = {
       orderId: `order-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      phone: user.phone,
       items: [...cart],
       preAuthPrice,
       notes,
@@ -347,8 +377,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         residencyType: selectedAddress.residencyType,
         notes: selectedAddress.notes || '',
       },
-      cardLastFour: card.lastFour
+      cardLastFour: card.lastFour,
+      status: 'open'
     };
+
+    // Write to Firestore 'orders' collection
+    await setDoc(doc(db, 'orders', newOrder.orderId), newOrder);
 
     const updatedOrders = [newOrder, ...orders];
     setOrders(updatedOrders);

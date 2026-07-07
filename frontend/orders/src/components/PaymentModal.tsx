@@ -84,7 +84,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onO
       return;
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         let cardToUse: CreditCard | null = null;
 
@@ -129,7 +129,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onO
           cardToUse = found;
         }
 
-        const newOrder = createNewOrder(notes, cardToUse, selectedAddress);
+        const newOrder = await createNewOrder(notes, cardToUse, selectedAddress);
         setCompletedOrder(newOrder);
       } catch (err: any) {
         setFormError(err.message || 'שגיאה במהלך ביצוע התשלום. אנא נסה שוב.');
