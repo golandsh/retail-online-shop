@@ -21,7 +21,6 @@ const db = getFirestore();
 const MOCK_USER = {
     fullName: "ישראל ישראלי",
     phone: "0501234567",
-    pt: "בניין דירות",
 };
 
 const MOCK_ADDRESS = {
@@ -31,6 +30,7 @@ const MOCK_ADDRESS = {
     apartment: 3,
     postalCode: 52522,
     notes: null as null,
+    pt: "בניין דירות",
 };
 
 const allocateNextUserId = async (): Promise<number> =>

@@ -106,7 +106,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               street: data.user.address.street || '',
               streetNumber: data.user.address.streetNumber ? String(data.user.address.streetNumber) : '',
               apartment: data.user.address.apartment ? String(data.user.address.apartment) : '',
-              residencyType: data.user.pt || 'בניין דירות',
+              residencyType: data.user.address.pt || 'בניין דירות',
               postalCode: data.user.address.postalCode ? String(data.user.address.postalCode) : '',
               notes: data.user.address.notes || '',
             });
@@ -209,7 +209,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       body: JSON.stringify({
         phone: apiPhone,
         fullName: updated.fullName,
-        pt: residencyType,
       }),
     });
 
@@ -231,6 +230,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           apartment: addr.apartment ? Number(addr.apartment) : null,
           postalCode: Number(addr.postalCode),
           notes: addr.notes ? addr.notes.trim() : null,
+          pt: residencyType,
         }),
       });
 

@@ -20,13 +20,13 @@ export interface CatalogAddress {
     apartment: number | null;
     postalCode: number;
     notes: string | null;
+    pt: string;
 }
 
 export interface CatalogUser {
     id: string;
     fullName: string;
     phone: string;
-    pt: string;
     address: CatalogAddress | null;
 }
 

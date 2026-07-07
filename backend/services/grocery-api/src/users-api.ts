@@ -14,7 +14,6 @@ const apiConfig = getApiConfig();
 export const upsertUserBodySchema = z.object({
     phone: z.string().trim().min(1, "Phone number is required"),
     fullName: z.string().trim().min(1, "Full name is required"),
-    pt: z.string().trim().min(1, "Property type is required"),
 });
 
 export type UpsertUserBody = z.infer<typeof upsertUserBodySchema>;
@@ -65,7 +64,6 @@ export const handleUpsertUser = async (req: any, res: any) => {
             const userRef = db.collection("users").doc(String(userId));
             await userRef.set({
                 fullName: body.fullName,
-                pt: body.pt,
                 updatedAt: FieldValue.serverTimestamp(),
             }, { merge: true });
 
@@ -78,7 +76,6 @@ export const handleUpsertUser = async (req: any, res: any) => {
                 id: userId,
                 phone: body.phone,
                 fullName: body.fullName,
-                pt: body.pt,
                 createdAt: FieldValue.serverTimestamp(),
                 updatedAt: FieldValue.serverTimestamp(),
             });
@@ -91,7 +88,6 @@ export const handleUpsertUser = async (req: any, res: any) => {
             id: String(userId),
             fullName: body.fullName,
             phone: body.phone,
-            pt: body.pt,
             address,
         };
 

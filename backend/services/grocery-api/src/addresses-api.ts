@@ -20,6 +20,7 @@ export const upsertAddressBodySchema = z.object({
     apartment: z.number().int().positive("Apartment number must be positive").nullable().optional(),
     postalCode: z.number().int().positive("Postal code must be positive"),
     notes: z.string().trim().nullable().optional(),
+    pt: z.string().trim().min(1, "Property type is required"),
 });
 
 export type UpsertAddressBody = z.infer<typeof upsertAddressBodySchema>;
@@ -78,6 +79,7 @@ export const handleUpsertAddress = async (req: any, res: any) => {
             apartment: body.apartment ?? null,
             postalCode: body.postalCode,
             notes: body.notes ?? null,
+            pt: body.pt,
             updatedAt: FieldValue.serverTimestamp(),
         };
 
@@ -110,6 +112,7 @@ export const handleUpsertAddress = async (req: any, res: any) => {
             apartment: body.apartment ?? null,
             postalCode: body.postalCode,
             notes: body.notes ?? null,
+            pt: body.pt,
         });
     } catch (error) {
         if (error instanceof AddressValidationError) {
