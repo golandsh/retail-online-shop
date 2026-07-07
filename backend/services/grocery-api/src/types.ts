@@ -16,7 +16,7 @@ export interface CatalogCategory {
 export interface CatalogAddress {
     city: string;
     street: string;
-    number: number;
+    streetNumber: number;
     apartment: number | null;
     postalCode: number;
     notes: string | null;

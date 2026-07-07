@@ -78,7 +78,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <div className={`product-card ${isInCartActive ? 'in-cart' : ''}`}>
       {/* Product Image/Emoji Zone */}
       <div className="product-image-container">
-        <span className="product-emoji">{getProductEmoji(product.productDesc)}</span>
+        {product.image ? (
+          <img 
+            src={product.image} 
+            alt={product.productDesc} 
+            className="product-image" 
+            loading="lazy" 
+          />
+        ) : (
+          <span className="product-emoji">{getProductEmoji(product.productDesc)}</span>
+        )}
       </div>
 
       {/* Product Details */}

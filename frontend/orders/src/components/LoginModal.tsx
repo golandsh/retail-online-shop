@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../AppContext';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import type { ConfirmationResult } from 'firebase/auth';
 import { auth, useEmulator } from '../firebase';
 import './LoginModal.scss';
 
-export const LoginModal: React.FC = () => {
+interface LoginModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const { login } = useApp();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -14,6 +19,43 @@ export const LoginModal: React.FC = () => {
   const [error, setError] = useState('');
   const [mockSms, setMockSms] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Reset state when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setPhoneNumber('');
+      setStep('phone');
+      setOtpCode('');
+      setConfirmationResult(null);
+      setError('');
+      setMockSms(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
+
+  // Clean up recaptcha verifier on close or unmount
+  useEffect(() => {
+    const cleanup = () => {
+      if ((window as any).recaptchaVerifier) {
+        try {
+          (window as any).recaptchaVerifier.clear();
+        } catch (e) {
+          // ignore
+        }
+        (window as any).recaptchaVerifier = null;
+      }
+    };
+
+    if (!isOpen) {
+      cleanup();
+    }
+
+    return () => {
+      cleanup();
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,10 +129,11 @@ export const LoginModal: React.FC = () => {
 
     try {
       const result = await confirmationResult.confirm(otpCode);
-      const user = result.user;
-      if (user && user.phoneNumber) {
-        login(user.phoneNumber);
+      const userDoc = result.user;
+      if (userDoc && userDoc.phoneNumber) {
+        login(userDoc.phoneNumber);
         setMockSms(null);
+        onClose();
       } else {
         throw new Error('שגיאה בקבלת פרטי המשתמש.');
       }
@@ -111,9 +154,9 @@ export const LoginModal: React.FC = () => {
   };
 
   return (
-    <div className="login-overlay">
+    <div className="login-overlay" onClick={onClose}>
       {mockSms && (
-        <div className="mock-sms-toast">
+        <div className="mock-sms-toast" onClick={(e) => e.stopPropagation()}>
           <div className="toast-header">
             <span className="toast-icon">💬</span>
             <strong>הודעה חדשה (SMS)</strong>
@@ -122,7 +165,26 @@ export const LoginModal: React.FC = () => {
         </div>
       )}
 
-      <div className="login-card">
+      <div className="login-card" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className="close-x"
+          onClick={onClose}
+          disabled={loading}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: '#aaa',
+            lineHeight: '1'
+          }}
+        >
+          ×
+        </button>
         <div className="login-logo">🛒</div>
         <h2>שלום! ברוכים הבאים</h2>
         <p className="login-subtitle">התחברו כדי להתחיל להזמין משלוחים טריים ישירות לביתכם</p>
@@ -185,20 +247,22 @@ export const LoginModal: React.FC = () => {
         </div>
         <div id="recaptcha-container"></div>
 
-        <div className="emulator-toggle-container" style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '13px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#666', userSelect: 'none' }}>
-            <input
-              type="checkbox"
-              checked={useEmulator}
-              onChange={(e) => {
-                localStorage.setItem('orders_use_emulator', e.target.checked ? "true" : "false");
-                window.location.reload();
-              }}
-              style={{ cursor: 'pointer' }}
-            />
-            <span>חיבור לסביבת פיתוח מקומית (Emulator)</span>
-          </label>
-        </div>
+        {window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? (
+          <div className="emulator-toggle-container" style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontSize: '13px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#666', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={useEmulator}
+                onChange={(e) => {
+                  localStorage.setItem('orders_use_emulator', e.target.checked ? "true" : "false");
+                  window.location.reload();
+                }}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>חיבור לסביבת פיתוח מקומית (Emulator)</span>
+            </label>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../AppContext';
 import type { CreditCard, Order } from '../types';
+
 import './PaymentModal.scss';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenUserModal: () => void;
 }
 
-export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
+export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onOpenUserModal }) => {
   const { cart, savedCards, createNewOrder, saveCreditCard, profile } = useApp();
   
   // Checkout fields
@@ -29,6 +31,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [formError, setFormError] = useState('');
+  const [selectedAddressIdx, setSelectedAddressIdx] = useState<number>(0);
 
   // Reset success and form states when modal is opened
   useEffect(() => {
@@ -44,6 +47,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
         cvv: '',
       });
       setSelectedCardId(savedCards.length > 0 ? savedCards[0].id : 'new');
+      setSelectedAddressIdx(0);
     }
   }, [isOpen, savedCards]);
 
@@ -66,6 +70,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
     e.preventDefault();
     setFormError('');
     setIsProcessing(true);
+
+    if (!profile || !profile.addresses || profile.addresses.length === 0) {
+      setFormError('לא נמצאה כתובת למשלוח. אנא הוסף כתובת בפרטי המשתמש.');
+      setIsProcessing(false);
+      return;
+    }
+
+    const selectedAddress = profile.addresses[selectedAddressIdx];
+    if (!selectedAddress) {
+      setFormError('אנא בחר כתובת למשלוח.');
+      setIsProcessing(false);
+      return;
+    }
 
     setTimeout(() => {
       try {
@@ -112,7 +129,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
           cardToUse = found;
         }
 
-        const newOrder = createNewOrder(notes, cardToUse);
+        const newOrder = createNewOrder(notes, cardToUse, selectedAddress);
         setCompletedOrder(newOrder);
       } catch (err: any) {
         setFormError(err.message || 'שגיאה במהלך ביצוע התשלום. אנא נסה שוב.');
@@ -162,6 +179,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
                 {completedOrder.profileSnapshot.street} {completedOrder.profileSnapshot.streetNumber}
                 {completedOrder.profileSnapshot.apartment ? `, דירה ${completedOrder.profileSnapshot.apartment}` : ''}
                 , {completedOrder.profileSnapshot.city}
+                {completedOrder.profileSnapshot.notes && (
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
+                    📝 הערה: {completedOrder.profileSnapshot.notes}
+                  </div>
+                )}
               </span>
             </div>
             {completedOrder.notes && (
@@ -198,14 +220,74 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) =
           {/* Delivery Details Snapshot */}
           <div className="checkout-section border-bottom">
             <h4>כתובת משלוח</h4>
-            {profile && (
-              <div className="delivery-address-summary">
-                <p><strong>שם מקבל המשלוח:</strong> {profile.fullName}</p>
-                <p>
-                  <strong>כתובת:</strong> {profile.street} {profile.streetNumber}
-                  {profile.apartment ? `, דירה ${profile.apartment}` : ''}
-                  , {profile.city} ({profile.residencyType})
+            {profile && profile.addresses && profile.addresses.length > 0 ? (
+              <div className="checkout-address-selection">
+                <p className="checkout-user-name" style={{ marginBottom: '12px' }}>
+                  <strong>שם מקבל המשלוח:</strong> {profile.fullName}
                 </p>
+                <label className="section-subtitle" style={{ fontSize: '0.85rem', color: '#4b5563', display: 'block', marginBottom: '8px' }}>
+                  בחר כתובת למשלוח:
+                </label>
+                <div className="address-options-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {profile.addresses.map((addr, idx) => (
+                    <label 
+                      key={idx} 
+                      className={`address-option-label ${selectedAddressIdx === idx ? 'active' : ''}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        padding: '12px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        background: selectedAddressIdx === idx ? 'var(--accent-light)' : '#ffffff',
+                        borderColor: selectedAddressIdx === idx ? 'var(--accent)' : '#e5e7eb'
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="checkoutAddress"
+                        checked={selectedAddressIdx === idx}
+                        onChange={() => setSelectedAddressIdx(idx)}
+                        style={{ marginTop: '4px', cursor: 'pointer' }}
+                      />
+                      <div className="address-option-details" style={{ flex: 1, textAlign: 'right', fontSize: '0.9rem', color: '#374151' }}>
+                        <div style={{ fontWeight: '600' }}>
+                          {addr.street} {addr.streetNumber}
+                          {addr.apartment ? `, דירה ${addr.apartment}` : ''}
+                          , {addr.city}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
+                          סוג דיור: {addr.residencyType} {addr.postalCode ? `| מיקוד: ${addr.postalCode}` : ''}
+                        </div>
+                        {addr.notes && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--accent)', marginTop: '4px', fontStyle: 'italic' }}>
+                            📝 {addr.notes}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="no-addresses-warning" style={{ textAlign: 'center', padding: '16px' }}>
+                <p style={{ color: 'var(--danger)', marginBottom: '12px', fontSize: '0.95rem' }}>
+                  לא נמצאו כתובות משלוח מוגדרות בפרופיל שלך.
+                </p>
+                <button
+                  type="button"
+                  className="submit-btn"
+                  style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+                  onClick={() => {
+                    onClose();
+                    onOpenUserModal();
+                  }}
+                >
+                  ⚙️ הגדר כתובת משלוח
+                </button>
               </div>
             )}
           </div>

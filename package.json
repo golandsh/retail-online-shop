@@ -14,7 +14,8 @@
     "docker:build": "docker compose -f online-shop-firebase-local/docker-compose.yml build",
     "firebase:login": "firebase login",
     "deploy": "firebase deploy",
-    "deploy:functions": "firebase deploy --only functions"
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:qa": "pnpm build && firebase deploy"
   },
   "devDependencies": {
     "firebase-tools": "^13.31.1",

@@ -7,6 +7,7 @@ interface CartDrawerProps {
   onClose: () => void;
   onOpenUserModal: () => void;
   onOpenPaymentModal: () => void;
+  onOpenLoginModal: () => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -14,8 +15,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onClose,
   onOpenUserModal,
   onOpenPaymentModal,
+  onOpenLoginModal,
 }) => {
-  const { cart, removeFromCart, addToCart, profile } = useApp();
+  const { cart, removeFromCart, addToCart, profile, user } = useApp();
 
   if (!isOpen) return null;
 
@@ -27,13 +29,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   const handleCheckoutClick = () => {
-    // Check if profile address is complete
+    if (!user) {
+      alert('על מנת לבצע הזמנה, אנא התחבר למערכת תחילה.');
+      onOpenLoginModal();
+      return;
+    }
+
     const isAddressComplete =
       profile &&
       profile.fullName.trim() !== '' &&
-      profile.city.trim() !== '' &&
-      profile.street.trim() !== '' &&
-      profile.streetNumber.trim() !== '';
+      profile.addresses &&
+      profile.addresses.length > 0 &&
+      profile.addresses.some(
+        (addr) =>
+          addr.city.trim() !== '' &&
+          addr.street.trim() !== '' &&
+          addr.streetNumber.trim() !== ''
+      );
 
     if (!isAddressComplete) {
       alert('על מנת לבצע הזמנה, אנא מלא את פרטי הכתובת והמשלוח שלך תחילה.');

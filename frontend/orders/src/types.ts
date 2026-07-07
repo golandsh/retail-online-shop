@@ -19,13 +19,20 @@ export interface CartItem {
   weight: number;    // for weightable products (in kg)
 }
 
-export interface UserProfile {
-  fullName: string;
+export interface Address {
+  id?: number;
   city: string;
   street: string;
   streetNumber: string;
   apartment: string;
-  residencyType: string; // e.g., "בניין דירות", "בית פרטי", "אחר"
+  residencyType: string; // e.g., "בניין דירות", "בית פרטי", "משרד"
+  postalCode?: string;
+  notes?: string;
+}
+
+export interface UserProfile {
+  fullName: string;
+  addresses: Address[];
 }
 
 
@@ -44,6 +51,15 @@ export interface Order {
   preAuthPrice: number;
   notes: string;
   createdAt: string;
-  profileSnapshot: UserProfile;
+  profileSnapshot: {
+    fullName: string;
+    city: string;
+    street: string;
+    streetNumber: string;
+    apartment: string;
+    residencyType: string;
+    notes?: string;
+  };
   cardLastFour: string;
 }
+

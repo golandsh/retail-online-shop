@@ -190,7 +190,7 @@ describe("fetchCatalog", () => {
                 {
                     city: "Tel Aviv",
                     street: "Herzl",
-                    number: 1,
+                    streetNumber: 1,
                     apartment: 3,
                     postalCode: 12345,
                     notes: null,
@@ -209,7 +209,7 @@ describe("fetchCatalog", () => {
             address: {
                 city: "Tel Aviv",
                 street: "Herzl",
-                number: 1,
+                streetNumber: 1,
                 apartment: 3,
                 postalCode: 12345,
                 notes: null,
@@ -224,8 +224,9 @@ describe("fetchCatalog", () => {
         );
     });
 
-    it("throws when user lookup fails", async () => {
+    it("returns null user when user lookup fails", async () => {
         const db = createMockFirestore(new Map());
-        await expect(fetchCatalog(db, { phone: "0501234567" })).rejects.toBeInstanceOf(UserNotFoundError);
+        const result = await fetchCatalog(db, { phone: "0501234567" });
+        expect(result.user).toBeNull();
     });
 });

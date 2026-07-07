@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "online-shop-bf396"
-  }
+  },
+  "targets": {
+    "online-shop-bf396": {
+      "hosting": {
+        "orders": [
+          "online-shop-bf396"
+        ],
+        "admin": [
+          "online-shop-bf396-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

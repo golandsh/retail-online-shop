@@ -101,7 +101,7 @@ export const buildPriceByProductId = (
 export const mapAddress = (data: FirebaseFirestore.DocumentData): CatalogAddress => ({
     city: String(data.city ?? ""),
     street: String(data.street ?? ""),
-    number: Number(data.number ?? 0),
+    streetNumber: Number(data.streetNumber ?? 0),
     apartment: data.apartment === null || data.apartment === undefined ? null : Number(data.apartment),
     postalCode: Number(data.postalCode ?? 0),
     notes: data.notes === null || data.notes === undefined ? null : String(data.notes),

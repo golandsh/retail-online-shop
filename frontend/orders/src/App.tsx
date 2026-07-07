@@ -8,20 +8,36 @@ import { CartDrawer } from './components/CartDrawer';
 import { PaymentModal } from './components/PaymentModal';
 import { CardsModal } from './components/CardsModal';
 import { OrdersModal } from './components/OrdersModal';
-import { mockCategories, mockProducts } from './mockData';
 import './App.scss';
 
 const AppContent: React.FC = () => {
-  const { user, profile, cart, logout, orders, addToCart } = useApp();
+  const { user, profile, cart, logout, orders, addToCart, categories, products, loadingCatalog } = useApp();
   
+  const categoriesToUse = categories;
+  const productsToUse = products;
+
   // State variables for active tabs and modals
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('dairy');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // Automatically update selectedCategoryId when categories load
+  useEffect(() => {
+    if (categories.length > 0) {
+      const exists = categories.some((c) => c.categoryId === selectedCategoryId);
+      if (!exists) {
+        const firstMain = categories.find((c) => !c.parentID);
+        if (firstMain) {
+          setSelectedCategoryId(firstMain.categoryId);
+        }
+      }
+    }
+  }, [categories, selectedCategoryId]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -36,9 +52,18 @@ const AppContent: React.FC = () => {
     return () => document.removeEventListener('click', handleOutsideClick);
   }, [isUserDropdownOpen]);
 
-  // If user is not logged in, render the login page
-  if (!user) {
-    return <LoginModal />;
+
+
+  // If loading the catalog and we don't have categories yet, show loading spinner
+  if (loadingCatalog && categoriesToUse.length === 0) {
+    return (
+      <div className="orders-portal-loading" dir="rtl">
+        <div className="loading-spinner-container">
+          <div className="loading-spinner"></div>
+          <p>טוען את מגוון המוצרים...</p>
+        </div>
+      </div>
+    );
   }
 
   // Calculate cart summary
@@ -49,8 +74,8 @@ const AppContent: React.FC = () => {
   }, 0);
 
   // Find active category hierarchy
-  const activeCategory = mockCategories.find((c) => c.categoryId === selectedCategoryId);
-  const subCategories = mockCategories.filter((c) => c.parentID === selectedCategoryId);
+  const activeCategory = categoriesToUse.find((c) => c.categoryId === selectedCategoryId);
+  const subCategories = categoriesToUse.filter((c) => c.parentID === selectedCategoryId);
   
   // Combine active category and its subcategories for rendering
   const categoriesToRender = [
@@ -62,9 +87,14 @@ const AppContent: React.FC = () => {
   const isAddressSet =
     profile &&
     profile.fullName.trim() !== '' &&
-    profile.city.trim() !== '' &&
-    profile.street.trim() !== '' &&
-    profile.streetNumber.trim() !== '';
+    profile.addresses &&
+    profile.addresses.length > 0 &&
+    profile.addresses.some(
+      (addr) =>
+        addr.city.trim() !== '' &&
+        addr.street.trim() !== '' &&
+        addr.streetNumber.trim() !== ''
+    );
 
   return (
     <div className="orders-portal" dir="rtl">
@@ -102,69 +132,85 @@ const AppContent: React.FC = () => {
 
           {/* User Profile Dropdown badge */}
           <div className="profile-badge-container">
-            <div 
-              className={`user-profile-badge ${isUserDropdownOpen ? 'active' : ''}`} 
-              onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-            >
-              <div className="badge-avatar">👤</div>
-              <div className="badge-text">
-                <span className="badge-status">מחובר</span>
-                <span className="badge-name">
-                  {profile?.fullName || user.phone}
-                </span>
-              </div>
-              {!isAddressSet && <span className="warning-dot" title="חסרים פרטי כתובת משלוח">!</span>}
-            </div>
-
-            {isUserDropdownOpen && (
-              <div className="user-dropdown-menu">
-                <button
-                  type="button"
-                  className="dropdown-link-btn user-link"
-                  onClick={() => {
-                    setIsUserDropdownOpen(false);
-                    setIsUserModalOpen(true);
-                  }}
+            {user ? (
+              <>
+                <div 
+                  className={`user-profile-badge ${isUserDropdownOpen ? 'active' : ''}`} 
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                 >
-                  <span className="dropdown-link-icon">👤</span>
-                  <span>פרטי משתמש וכתובת משלוח</span>
-                </button>
+                  <div className="badge-avatar">👤</div>
+                  <div className="badge-text">
+                    <span className="badge-status">מחובר</span>
+                    <span className="badge-name">
+                      {profile?.fullName || user.phone}
+                    </span>
+                  </div>
+                  {!isAddressSet && <span className="warning-dot" title="חסרים פרטי כתובת משלוח">!</span>}
+                </div>
 
-                <button
-                  type="button"
-                  className="dropdown-link-btn payment-link"
-                  onClick={() => {
-                    setIsUserDropdownOpen(false);
-                    setIsCardsModalOpen(true);
-                  }}
-                >
-                  <span className="dropdown-link-icon">💳</span>
-                  <span>אמצעי תשלום שמורים</span>
-                </button>
+                {isUserDropdownOpen && (
+                  <div className="user-dropdown-menu">
+                    <button
+                      type="button"
+                      className="dropdown-link-btn user-link"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        setIsUserModalOpen(true);
+                      }}
+                    >
+                      <span className="dropdown-link-icon">👤</span>
+                      <span>פרטי משתמש וכתובת משלוח</span>
+                    </button>
 
-                <button
-                  type="button"
-                  className="dropdown-link-btn orders-link"
-                  onClick={() => {
-                    setIsUserDropdownOpen(false);
-                    setIsOrdersModalOpen(true);
-                  }}
-                >
-                  <span className="dropdown-link-icon">📋</span>
-                  <span>ההזמנות שלי ({orders.length})</span>
-                </button>
+                    <button
+                      type="button"
+                      className="dropdown-link-btn payment-link"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        setIsCardsModalOpen(true);
+                      }}
+                    >
+                      <span className="dropdown-link-icon">💳</span>
+                      <span>אמצעי תשלום שמורים</span>
+                    </button>
 
-                <div className="dropdown-footer-section">
-                  <button 
-                    type="button" 
-                    className="dropdown-logout-btn" 
-                    onClick={() => {
-                      setIsUserDropdownOpen(false);
-                      logout();
-                    }}
-                  >
-                    🚪 התנתקות מהמערכת
-                  </button>
+                    <button
+                      type="button"
+                      className="dropdown-link-btn orders-link"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        setIsOrdersModalOpen(true);
+                      }}
+                    >
+                      <span className="dropdown-link-icon">📋</span>
+                      <span>ההזמנות שלי ({orders.length})</span>
+                    </button>
+
+                    <div className="dropdown-footer-section">
+                      <button 
+                        type="button" 
+                        className="dropdown-logout-btn" 
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          logout();
+                        }}
+                      >
+                        🚪 התנתקות מהמערכת
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div 
+                className="user-profile-badge guest-mode" 
+                onClick={() => setIsLoginModalOpen(true)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="badge-avatar">👤</div>
+                <div className="badge-text">
+                  <span className="badge-status">אורח</span>
+                  <span className="badge-name">לחץ להתחברות</span>
                 </div>
               </div>
             )}
@@ -176,7 +222,7 @@ const AppContent: React.FC = () => {
       <div className="portal-workspace">
         {/* Sidebar vertical tabs */}
         <VerticalTabs
-          categories={mockCategories}
+          categories={categoriesToUse}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={setSelectedCategoryId}
         />
@@ -190,7 +236,7 @@ const AppContent: React.FC = () => {
 
           <div className="products-container">
             {categoriesToRender.map((category) => {
-              const products = mockProducts.filter((p) => p.categoryId === category.categoryId);
+              const products = productsToUse.filter((p) => p.categoryId === category.categoryId);
               if (products.length === 0) return null;
 
               return (
@@ -231,6 +277,10 @@ const AppContent: React.FC = () => {
           setIsCartOpen(false);
           setIsPaymentModalOpen(true);
         }}
+        onOpenLoginModal={() => {
+          setIsCartOpen(false);
+          setIsLoginModalOpen(true);
+        }}
       />
 
       {/* User Profile Modal */}
@@ -239,10 +289,20 @@ const AppContent: React.FC = () => {
         onClose={() => setIsUserModalOpen(false)}
       />
 
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
+
       {/* Credit Card Payment Modal */}
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
+        onOpenUserModal={() => {
+          setIsPaymentModalOpen(false);
+          setIsUserModalOpen(true);
+        }}
       />
 
       {/* Saved Cards Modal */}
