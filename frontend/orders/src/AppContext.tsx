@@ -13,7 +13,7 @@ interface AppContextType {
   loadingCatalog: boolean;
   login: (phone: string) => void;
   logout: () => void;
-  updateProfile: (profile: UserProfile) => void;
+  updateProfile: (profile: UserProfile) => Promise<void>;
   addToCart: (product: Product, quantityOrWeight: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
@@ -58,8 +58,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(null);
     setProfile(null);
     setCart([]);
-    localStorage.removeItem('orders_user');
-    localStorage.removeItem('orders_profile');
     deleteCookie('orders_session');
     auth.signOut().catch((err) => console.error("Firebase signOut error", err));
   };
@@ -75,18 +73,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         : "/api";
 
       let url = `${baseUrl}/getCatalog`;
+      let apiPhone = '';
       if (phone) {
-        let apiPhone = phone.trim();
+        apiPhone = phone.trim();
         if (apiPhone.startsWith('+972')) {
           apiPhone = '0' + apiPhone.substring(4);
         }
         url += `?phone=${encodeURIComponent(apiPhone)}`;
       }
 
-      const res = await fetch(url);
+      let res = await fetch(url);
+
       if (!res.ok) {
         throw new Error(`Failed to fetch catalog: ${res.statusText}`);
       }
+
       const data = await res.json();
       if (data.products) {
         setProducts(data.products);
@@ -96,17 +97,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       if (phone) {
-        // Load local profile to get any locally added addresses
-        const localProfileStr = localStorage.getItem(`profile_${phone}`);
-        let localProfile: UserProfile | null = null;
-        if (localProfileStr) {
-          try {
-            localProfile = JSON.parse(localProfileStr);
-          } catch (e) {
-            console.error("Failed to parse local profile", e);
-          }
-        }
-
         if (data.user) {
           const backendAddresses: Address[] = [];
           if (data.user.address) {
@@ -122,41 +112,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
           }
 
-          let mergedAddresses = [...backendAddresses];
-          if (localProfile && Array.isArray(localProfile.addresses)) {
-            localProfile.addresses.forEach((localAddr) => {
-              const exists = backendAddresses.some(
-                (bAddr) =>
-                  bAddr.city.toLowerCase() === localAddr.city.toLowerCase() &&
-                  bAddr.street.toLowerCase() === localAddr.street.toLowerCase() &&
-                  bAddr.streetNumber === localAddr.streetNumber &&
-                  bAddr.apartment === localAddr.apartment
-              );
-              if (!exists) {
-                mergedAddresses.push(localAddr);
-              }
-            });
-          }
-
           const fetchedProfile: UserProfile = {
-            fullName: data.user.fullName || localProfile?.fullName || '',
-            addresses: mergedAddresses,
+            fullName: data.user.fullName || '',
+            addresses: backendAddresses,
           };
           setProfile(fetchedProfile);
-          localStorage.setItem('orders_profile', JSON.stringify(fetchedProfile));
-          localStorage.setItem(`profile_${phone}`, JSON.stringify(fetchedProfile));
         } else {
-          if (localProfile) {
-            setProfile(localProfile);
-            localStorage.setItem('orders_profile', JSON.stringify(localProfile));
-          } else {
-            const newProfile: UserProfile = {
-              fullName: '',
-              addresses: [],
-            };
-            setProfile(newProfile);
-            localStorage.setItem('orders_profile', JSON.stringify(newProfile));
-          }
+          setProfile({
+            fullName: '',
+            addresses: [],
+          });
         }
       }
     } catch (error) {
@@ -169,42 +134,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = (phone: string) => {
     const sessionUser = { phone };
     setUser(sessionUser);
-    localStorage.setItem('orders_user', JSON.stringify(sessionUser));
     setCookie('orders_session', JSON.stringify(sessionUser), 30);
     fetchAndSetCatalog(phone);
   };
 
-  // Load saved credentials/cards/profile from LocalStorage on mount
+  // Load saved credentials/cards/profile from LocalStorage/Cookies on mount
   useEffect(() => {
     const sessionCookie = getCookie('orders_session');
     if (!sessionCookie) {
       logout();
+      fetchAndSetCatalog();
       return;
     }
 
-    const savedUserStr = localStorage.getItem('orders_user');
-    const savedProfileStr = localStorage.getItem('orders_profile');
     const savedCardsStr = localStorage.getItem('orders_cards');
     const savedOrdersStr = localStorage.getItem('orders_history');
 
     let restoredPhone = '';
-    if (savedUserStr) {
-      const parsed = JSON.parse(savedUserStr);
+    try {
+      const parsed = JSON.parse(sessionCookie);
       setUser(parsed);
       restoredPhone = parsed.phone;
-    } else {
-      try {
-        const parsed = JSON.parse(sessionCookie);
-        setUser(parsed);
-        localStorage.setItem('orders_user', sessionCookie);
-        restoredPhone = parsed.phone;
-      } catch (e) {
-        logout();
-        return;
-      }
+    } catch (e) {
+      logout();
+      fetchAndSetCatalog();
+      return;
     }
 
-    if (savedProfileStr) setProfile(JSON.parse(savedProfileStr));
     if (savedCardsStr) {
       setSavedCards(JSON.parse(savedCardsStr));
     } else {
@@ -229,12 +185,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  const updateProfile = (updated: UserProfile) => {
-    setProfile(updated);
-    localStorage.setItem('orders_profile', JSON.stringify(updated));
-    if (user?.phone) {
-      localStorage.setItem(`profile_${user.phone}`, JSON.stringify(updated));
+  const updateProfile = async (updated: UserProfile) => {
+    if (!user?.phone) return;
+
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "online-shop-bf396";
+
+    const baseUrl = (isLocalhost && !useEmulator)
+      ? `https://us-east1-${projectId}.cloudfunctions.net`
+      : "/api";
+
+    let apiPhone = user.phone.trim();
+    if (apiPhone.startsWith('+972')) {
+      apiPhone = '0' + apiPhone.substring(4);
     }
+
+    const residencyType = updated.addresses[0]?.residencyType || 'בניין דירות';
+
+    // 1. Upsert User
+    const userRes = await fetch(`${baseUrl}/upsertUser`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: apiPhone,
+        fullName: updated.fullName,
+        pt: residencyType,
+      }),
+    });
+
+    if (!userRes.ok) {
+      throw new Error(`Failed to update user profile: ${userRes.statusText}`);
+    }
+
+    // 2. Upsert Address or Delete Address
+    if (updated.addresses.length > 0) {
+      const addr = updated.addresses[0];
+      const addressRes = await fetch(`${baseUrl}/upsertAddress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: apiPhone,
+          city: addr.city.trim(),
+          street: addr.street.trim(),
+          streetNumber: Number(addr.streetNumber),
+          apartment: addr.apartment ? Number(addr.apartment) : null,
+          postalCode: Number(addr.postalCode),
+          notes: addr.notes ? addr.notes.trim() : null,
+        }),
+      });
+
+      if (!addressRes.ok) {
+        throw new Error(`Failed to update address: ${addressRes.statusText}`);
+      }
+    } else {
+      // Address was deleted
+      const deleteRes = await fetch(`${baseUrl}/deleteAddress`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: apiPhone }),
+      });
+
+      if (!deleteRes.ok && deleteRes.status !== 404) {
+        throw new Error(`Failed to delete address: ${deleteRes.statusText}`);
+      }
+    }
+
+    // 3. Update react state
+    setProfile(updated);
   };
 
   const addToCart = (product: Product, quantityOrWeight: number) => {

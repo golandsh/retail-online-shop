@@ -24,6 +24,7 @@ const AppContent: React.FC = () => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Automatically update selectedCategoryId when categories load
   useEffect(() => {
@@ -51,10 +52,7 @@ const AppContent: React.FC = () => {
     return () => document.removeEventListener('click', handleOutsideClick);
   }, [isUserDropdownOpen]);
 
-  // If user is not logged in, render the login page
-  if (!user) {
-    return <LoginModal />;
-  }
+
 
   // If loading the catalog and we don't have categories yet, show loading spinner
   if (loadingCatalog && categoriesToUse.length === 0) {
@@ -134,69 +132,85 @@ const AppContent: React.FC = () => {
 
           {/* User Profile Dropdown badge */}
           <div className="profile-badge-container">
-            <div 
-              className={`user-profile-badge ${isUserDropdownOpen ? 'active' : ''}`} 
-              onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-            >
-              <div className="badge-avatar">👤</div>
-              <div className="badge-text">
-                <span className="badge-status">מחובר</span>
-                <span className="badge-name">
-                  {profile?.fullName || user.phone}
-                </span>
-              </div>
-              {!isAddressSet && <span className="warning-dot" title="חסרים פרטי כתובת משלוח">!</span>}
-            </div>
-
-            {isUserDropdownOpen && (
-              <div className="user-dropdown-menu">
-                <button
-                  type="button"
-                  className="dropdown-link-btn user-link"
-                  onClick={() => {
-                    setIsUserDropdownOpen(false);
-                    setIsUserModalOpen(true);
-                  }}
+            {user ? (
+              <>
+                <div 
+                  className={`user-profile-badge ${isUserDropdownOpen ? 'active' : ''}`} 
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                 >
-                  <span className="dropdown-link-icon">👤</span>
-                  <span>פרטי משתמש וכתובת משלוח</span>
-                </button>
+                  <div className="badge-avatar">👤</div>
+                  <div className="badge-text">
+                    <span className="badge-status">מחובר</span>
+                    <span className="badge-name">
+                      {profile?.fullName || user.phone}
+                    </span>
+                  </div>
+                  {!isAddressSet && <span className="warning-dot" title="חסרים פרטי כתובת משלוח">!</span>}
+                </div>
 
-                <button
-                  type="button"
-                  className="dropdown-link-btn payment-link"
-                  onClick={() => {
-                    setIsUserDropdownOpen(false);
-                    setIsCardsModalOpen(true);
-                  }}
-                >
-                  <span className="dropdown-link-icon">💳</span>
-                  <span>אמצעי תשלום שמורים</span>
-                </button>
+                {isUserDropdownOpen && (
+                  <div className="user-dropdown-menu">
+                    <button
+                      type="button"
+                      className="dropdown-link-btn user-link"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        setIsUserModalOpen(true);
+                      }}
+                    >
+                      <span className="dropdown-link-icon">👤</span>
+                      <span>פרטי משתמש וכתובת משלוח</span>
+                    </button>
 
-                <button
-                  type="button"
-                  className="dropdown-link-btn orders-link"
-                  onClick={() => {
-                    setIsUserDropdownOpen(false);
-                    setIsOrdersModalOpen(true);
-                  }}
-                >
-                  <span className="dropdown-link-icon">📋</span>
-                  <span>ההזמנות שלי ({orders.length})</span>
-                </button>
+                    <button
+                      type="button"
+                      className="dropdown-link-btn payment-link"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        setIsCardsModalOpen(true);
+                      }}
+                    >
+                      <span className="dropdown-link-icon">💳</span>
+                      <span>אמצעי תשלום שמורים</span>
+                    </button>
 
-                <div className="dropdown-footer-section">
-                  <button 
-                    type="button" 
-                    className="dropdown-logout-btn" 
-                    onClick={() => {
-                      setIsUserDropdownOpen(false);
-                      logout();
-                    }}
-                  >
-                    🚪 התנתקות מהמערכת
-                  </button>
+                    <button
+                      type="button"
+                      className="dropdown-link-btn orders-link"
+                      onClick={() => {
+                        setIsUserDropdownOpen(false);
+                        setIsOrdersModalOpen(true);
+                      }}
+                    >
+                      <span className="dropdown-link-icon">📋</span>
+                      <span>ההזמנות שלי ({orders.length})</span>
+                    </button>
+
+                    <div className="dropdown-footer-section">
+                      <button 
+                        type="button" 
+                        className="dropdown-logout-btn" 
+                        onClick={() => {
+                          setIsUserDropdownOpen(false);
+                          logout();
+                        }}
+                      >
+                        🚪 התנתקות מהמערכת
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div 
+                className="user-profile-badge guest-mode" 
+                onClick={() => setIsLoginModalOpen(true)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="badge-avatar">👤</div>
+                <div className="badge-text">
+                  <span className="badge-status">אורח</span>
+                  <span className="badge-name">לחץ להתחברות</span>
                 </div>
               </div>
             )}
@@ -263,12 +277,22 @@ const AppContent: React.FC = () => {
           setIsCartOpen(false);
           setIsPaymentModalOpen(true);
         }}
+        onOpenLoginModal={() => {
+          setIsCartOpen(false);
+          setIsLoginModalOpen(true);
+        }}
       />
 
       {/* User Profile Modal */}
       <UserModal
         isOpen={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}
+      />
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
 
       {/* Credit Card Payment Modal */}

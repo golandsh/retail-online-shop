@@ -23,32 +23,71 @@
   "firestore": {
     "rules": "online-shop-firebase-local/firestore.rules"
   },
-  "hosting": {
-    "public": "frontend/orders/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/getCatalog",
-        "function": {
-          "functionId": "getCatalog",
-          "region": "us-east1"
+  "hosting": [
+    {
+      "target": "orders",
+      "public": "frontend/orders/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/api/getCatalog",
+          "function": {
+            "functionId": "getCatalog",
+            "region": "us-east1"
+          }
+        },
+        {
+          "source": "/api/createOrder",
+          "function": {
+            "functionId": "createOrder",
+            "region": "us-east1"
+          }
+        },
+        {
+          "source": "/api/upsertUser",
+          "function": {
+            "functionId": "upsertUser",
+            "region": "us-east1"
+          }
+        },
+        {
+          "source": "/api/upsertAddress",
+          "function": {
+            "functionId": "upsertAddress",
+            "region": "us-east1"
+          }
+        },
+        {
+          "source": "/api/deleteAddress",
+          "function": {
+            "functionId": "deleteAddress",
+            "region": "us-east1"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
         }
-      },
-      {
-        "source": "/api/createOrder",
-        "function": {
-          "functionId": "createOrder",
-          "region": "us-east1"
+      ]
+    },
+    {
+      "target": "admin",
+      "public": "frontend/admin/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
         }
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
+      ]
+    }
+  ]
 }

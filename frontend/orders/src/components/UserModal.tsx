@@ -16,6 +16,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(-1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Sync state with global context on open or change
   useEffect(() => {
@@ -28,6 +29,8 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const handleAddAddress = () => {
+    if (addresses.length >= 1) return; // Prevent multiple addresses
+
     const newAddr: Address = {
       city: '',
       street: '',
@@ -67,7 +70,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
     setExpandedIndex(expandedIndex === index ? null : index);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
@@ -75,11 +78,6 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
     // Validate required fields
     if (!fullName.trim()) {
       setError('אנא הזן שם מלא');
-      return;
-    }
-
-    if (addresses.length === 0) {
-      setError('אנא הוסף לפחות כתובת אחת למשלוח');
       return;
     }
 
@@ -96,31 +94,57 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
         setExpandedIndex(i);
         return;
       }
-      if (!addr.streetNumber.trim()) {
-        setError(`אנא הזן מספר בית בכתובת מס׳ ${i + 1}`);
+      
+      const streetNum = Number(addr.streetNumber);
+      if (!addr.streetNumber.trim() || isNaN(streetNum) || streetNum <= 0) {
+        setError(`אנא הזן מספר בית תקין (מספר חיובי) בכתובת מס׳ ${i + 1}`);
+        setExpandedIndex(i);
+        return;
+      }
+
+      if (addr.apartment) {
+        const aptNum = Number(addr.apartment);
+        if (isNaN(aptNum) || aptNum <= 0) {
+          setError(`אנא הזן מספר דירה תקין (מספר חיובי) בכתובת מס׳ ${i + 1}`);
+          setExpandedIndex(i);
+          return;
+        }
+      }
+
+      const pCode = Number(addr.postalCode);
+      if (!addr.postalCode || !String(addr.postalCode).trim() || isNaN(pCode) || pCode <= 0) {
+        setError(`אנא הזן מיקוד תקין (מספר חיובי) בכתובת מס׳ ${i + 1}`);
         setExpandedIndex(i);
         return;
       }
     }
 
-    updateProfile({
-      fullName,
-      addresses
-    });
+    setSaving(true);
+    try {
+      await updateProfile({
+        fullName: fullName.trim(),
+        addresses
+      });
 
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      onClose();
-    }, 1000);
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();
+      }, 1000);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'שגיאה בעדכון הפרטים. אנא נסה שוב.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="modal-overlay">
       <div className="modal-card user-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>עדכון פרטי משתמש וכתובות משלוח</h3>
-          <button type="button" className="close-x" onClick={onClose}>×</button>
+          <h3>עדכון פרטי משתמש וכתובת משלוח</h3>
+          <button type="button" className="close-x" onClick={onClose} disabled={saving}>×</button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
@@ -141,12 +165,13 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
               onChange={(e) => setFullName(e.target.value)}
               placeholder="שם פרטי ומשפחה"
               required
+              disabled={saving}
             />
           </div>
 
           {/* Addresses list label */}
           <div className="addresses-section-header">
-            <h4>כתובות למשלוח ({addresses.length})</h4>
+            <h4>כתובת למשלוח</h4>
           </div>
 
           <div className="addresses-list-container">
@@ -160,7 +185,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
               return (
                 <div key={idx} className={`address-accordion-item ${isExpanded ? 'expanded' : ''}`}>
                   {/* Summary/Header */}
-                  <div className="accordion-summary-header" onClick={() => toggleExpand(idx)}>
+                  <div className="accordion-summary-header" onClick={() => !saving && toggleExpand(idx)}>
                     <div className="summary-title-wrapper">
                       <span className="accordion-icon">📍</span>
                       <span className="accordion-title-text">{summaryText}</span>
@@ -169,8 +194,9 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                       <button
                         type="button"
                         className="delete-address-btn"
-                        onClick={(e) => handleDeleteAddress(idx, e)}
+                        onClick={(e) => !saving && handleDeleteAddress(idx, e)}
                         title="מחק כתובת זו"
+                        disabled={saving}
                       >
                         🗑️
                       </button>
@@ -189,6 +215,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             type="button"
                             className={`residency-option-btn ${addr.residencyType === 'בניין דירות' ? 'active' : ''}`}
                             onClick={() => handleAddressChange(idx, { residencyType: 'בניין דירות' })}
+                            disabled={saving}
                           >
                             <span className="residency-icon">🏢</span>
                             <span className="residency-label">דירה בבניין</span>
@@ -198,6 +225,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             type="button"
                             className={`residency-option-btn ${addr.residencyType === 'בית פרטי' ? 'active' : ''}`}
                             onClick={() => handleAddressChange(idx, { residencyType: 'בית פרטי' })}
+                            disabled={saving}
                           >
                             <span className="residency-icon">🏠</span>
                             <span className="residency-label">בית פרטי</span>
@@ -207,6 +235,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             type="button"
                             className={`residency-option-btn ${addr.residencyType === 'משרד' ? 'active' : ''}`}
                             onClick={() => handleAddressChange(idx, { residencyType: 'משרד' })}
+                            disabled={saving}
                           >
                             <span className="residency-icon">💼</span>
                             <span className="residency-label">משרד / עסק</span>
@@ -224,6 +253,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             onChange={(e) => handleAddressChange(idx, { city: e.target.value })}
                             placeholder="לדוגמה: תל אביב"
                             required
+                            disabled={saving}
                           />
                         </div>
                         <div className="form-group flex-3">
@@ -234,6 +264,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             onChange={(e) => handleAddressChange(idx, { street: e.target.value })}
                             placeholder="לדוגמה: אבן גבירול"
                             required
+                            disabled={saving}
                           />
                         </div>
                       </div>
@@ -248,6 +279,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             onChange={(e) => handleAddressChange(idx, { streetNumber: e.target.value })}
                             placeholder="למשל: 14"
                             required
+                            disabled={saving}
                           />
                         </div>
                         <div className="form-group flex-apartment">
@@ -257,6 +289,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             value={addr.apartment}
                             onChange={(e) => handleAddressChange(idx, { apartment: e.target.value })}
                             placeholder="אופציונלי"
+                            disabled={saving}
                           />
                         </div>
                         <div className="form-group flex-postal">
@@ -265,7 +298,9 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                             type="text"
                             value={addr.postalCode || ''}
                             onChange={(e) => handleAddressChange(idx, { postalCode: e.target.value })}
-                            placeholder="אופציונלי"
+                            placeholder="חובה"
+                            required
+                            disabled={saving}
                           />
                         </div>
                       </div>
@@ -278,6 +313,7 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
                           value={addr.notes || ''}
                           onChange={(e) => handleAddressChange(idx, { notes: e.target.value })}
                           placeholder="לדוגמה: קוד כניסה #1234, להשאיר ליד הדלת"
+                          disabled={saving}
                         />
                       </div>
                     </div>
@@ -287,20 +323,23 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
             })}
           </div>
 
-          <button
-            type="button"
-            className="add-address-btn"
-            onClick={handleAddAddress}
-          >
-            ➕ הוסף כתובת חדשה
-          </button>
+          {addresses.length === 0 && (
+            <button
+              type="button"
+              className="add-address-btn"
+              onClick={handleAddAddress}
+              disabled={saving}
+            >
+              ➕ הוסף כתובת משלוח
+            </button>
+          )}
 
           <div className="modal-actions">
-            <button type="button" className="cancel-btn" onClick={onClose}>
+            <button type="button" className="cancel-btn" onClick={onClose} disabled={saving}>
               ביטול
             </button>
-            <button type="submit" className="submit-btn">
-              שמור שינויים
+            <button type="submit" className="submit-btn" disabled={saving}>
+              {saving ? 'שומר...' : 'שמור שינויים'}
             </button>
           </div>
         </form>
@@ -308,5 +347,3 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
-
-

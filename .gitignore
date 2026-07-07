@@ -24,6 +24,7 @@ lerna-debug.log*
 # Firebase local
 firebase-export-*
 backend/services/grocery-import/.firebaserc
+hosting.*
 
 # Environment files
 .env

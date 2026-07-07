@@ -63,16 +63,22 @@ export const fetchCatalog = async (db: Firestore, query: CatalogQuery): Promise<
     const userDoc = phone ? await loadUserByPhone(db, phone) : await loadUserById(db, userId!);
 
     if (!userDoc) {
-        throw new UserNotFoundError(
-            phone ? `User with phone "${phone}" was not found` : `User with id "${userId}" was not found`,
-        );
+        return {
+            products,
+            categories,
+            cityStreets,
+            user: null,
+        };
     }
 
     const userData = userDoc.data();
     if (!userData) {
-        throw new UserNotFoundError(
-            phone ? `User with phone "${phone}" was not found` : `User with id "${userId}" was not found`,
-        );
+        return {
+            products,
+            categories,
+            cityStreets,
+            user: null,
+        };
     }
 
     const resolvedUserId = Number(userData.id ?? userDoc.id);

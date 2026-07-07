@@ -7,6 +7,7 @@ interface CartDrawerProps {
   onClose: () => void;
   onOpenUserModal: () => void;
   onOpenPaymentModal: () => void;
+  onOpenLoginModal: () => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -14,8 +15,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onClose,
   onOpenUserModal,
   onOpenPaymentModal,
+  onOpenLoginModal,
 }) => {
-  const { cart, removeFromCart, addToCart, profile } = useApp();
+  const { cart, removeFromCart, addToCart, profile, user } = useApp();
 
   if (!isOpen) return null;
 
@@ -27,6 +29,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   const handleCheckoutClick = () => {
+    if (!user) {
+      alert('על מנת לבצע הזמנה, אנא התחבר למערכת תחילה.');
+      onOpenLoginModal();
+      return;
+    }
+
     const isAddressComplete =
       profile &&
       profile.fullName.trim() !== '' &&

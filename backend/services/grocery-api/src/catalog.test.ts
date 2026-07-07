@@ -224,8 +224,9 @@ describe("fetchCatalog", () => {
         );
     });
 
-    it("throws when user lookup fails", async () => {
+    it("returns null user when user lookup fails", async () => {
         const db = createMockFirestore(new Map());
-        await expect(fetchCatalog(db, { phone: "0501234567" })).rejects.toBeInstanceOf(UserNotFoundError);
+        const result = await fetchCatalog(db, { phone: "0501234567" });
+        expect(result.user).toBeNull();
     });
 });

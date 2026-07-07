@@ -13,11 +13,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 // Check localStorage first, fallback to the env variable
 const storedEmulatorSetting = localStorage.getItem('orders_use_emulator');
-export const useEmulator = storedEmulatorSetting !== null
+export const useEmulator = isLocalhost && (storedEmulatorSetting !== null
   ? storedEmulatorSetting === "true"
-  : import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true";
+  : import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true");
 
 if (useEmulator) {
   connectAuthEmulator(auth, "http://localhost:9099");

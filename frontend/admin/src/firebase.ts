@@ -17,7 +17,10 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 
-if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true") {
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const useEmulator = isLocalhost && import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true";
+
+if (useEmulator) {
   connectAuthEmulator(auth, "http://localhost:9099");
   connectStorageEmulator(storage, "localhost", 9199);
 }
