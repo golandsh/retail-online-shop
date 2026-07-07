@@ -135,7 +135,6 @@ describe("upsertUser", () => {
             body: {
                 phone: "0509999999",
                 fullName: "John Doe",
-                pt: "private house",
             },
         } as any;
         const res = {
@@ -150,7 +149,6 @@ describe("upsertUser", () => {
             id: "42",
             phone: "0509999999",
             fullName: "John Doe",
-            pt: "private house",
             address: null,
         });
 
@@ -158,7 +156,6 @@ describe("upsertUser", () => {
             id: 42,
             phone: "0509999999",
             fullName: "John Doe",
-            pt: "private house",
         });
         expect(store.get("counters/users")).toMatchObject({
             nextId: 43,
@@ -167,8 +164,8 @@ describe("upsertUser", () => {
 
     it("updates existing user if phone already exists", async () => {
         const store = new Map<string, Record<string, unknown>>([
-            ["users/10", { id: 10, phone: "0501234567", fullName: "Old Name", pt: "apartment" }],
-            ["addresses/10", { id: 10, userId: 10, city: "Tel Aviv", street: "Herzl", streetNumber: 5, apartment: 1, postalCode: 12345, notes: null }],
+            ["users/10", { id: 10, phone: "0501234567", fullName: "Old Name" }],
+            ["addresses/10", { id: 10, userId: 10, city: "Tel Aviv", street: "Herzl", streetNumber: 5, apartment: 1, postalCode: 12345, notes: null, pt: "apartment" }],
         ]);
         mockDb = createMockFirestore(store);
 
@@ -177,7 +174,6 @@ describe("upsertUser", () => {
             body: {
                 phone: "0501234567",
                 fullName: "New Name",
-                pt: "villa",
             },
         } as any;
         const res = {
@@ -192,7 +188,6 @@ describe("upsertUser", () => {
             id: "10",
             phone: "0501234567",
             fullName: "New Name",
-            pt: "villa",
             address: {
                 city: "Tel Aviv",
                 street: "Herzl",
@@ -200,6 +195,7 @@ describe("upsertUser", () => {
                 apartment: 1,
                 postalCode: 12345,
                 notes: null,
+                pt: "apartment",
             },
         });
 
@@ -207,7 +203,6 @@ describe("upsertUser", () => {
             id: 10,
             phone: "0501234567",
             fullName: "New Name",
-            pt: "villa",
         });
     });
 
@@ -219,7 +214,6 @@ describe("upsertUser", () => {
             body: {
                 phone: "  ",
                 fullName: "New Name",
-                pt: "",
             },
         } as any;
         const res = {
@@ -231,7 +225,7 @@ describe("upsertUser", () => {
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.json).toHaveBeenCalledWith({
-            error: expect.stringContaining("Phone number is required; Property type is required"),
+            error: expect.stringContaining("Phone number is required"),
         });
     });
 });

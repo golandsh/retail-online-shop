@@ -184,7 +184,7 @@ describe("fetchCatalog", () => {
 
     it("returns user and address when phone matches", async () => {
         const store = new Map<string, Record<string, unknown>>([
-            ["users/42", { id: 42, fullName: "Israel Israeli", phone: "0501234567", pt: "apt" }],
+            ["users/42", { id: 42, fullName: "Israel Israeli", phone: "0501234567" }],
             [
                 "addresses/1",
                 {
@@ -195,6 +195,7 @@ describe("fetchCatalog", () => {
                     postalCode: 12345,
                     notes: null,
                     userId: 42,
+                    pt: "apt",
                 },
             ],
         ]);
@@ -213,6 +214,7 @@ describe("fetchCatalog", () => {
                 apartment: 3,
                 postalCode: 12345,
                 notes: null,
+                pt: "apt",
             },
         });
     });

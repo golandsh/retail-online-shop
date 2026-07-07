@@ -105,6 +105,7 @@ export const mapAddress = (data: FirebaseFirestore.DocumentData): CatalogAddress
     apartment: data.apartment === null || data.apartment === undefined ? null : Number(data.apartment),
     postalCode: Number(data.postalCode ?? 0),
     notes: data.notes === null || data.notes === undefined ? null : String(data.notes),
+    pt: String(data.pt ?? ""),
 });
 
 export const mapUser = (
@@ -114,7 +115,6 @@ export const mapUser = (
     id: String(data.id ?? ""),
     fullName: String(data.fullName ?? ""),
     phone: String(data.phone ?? ""),
-    pt: String(data.pt ?? ""),
     address,
 });
 

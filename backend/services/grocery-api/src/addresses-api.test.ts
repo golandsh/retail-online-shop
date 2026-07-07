@@ -122,6 +122,7 @@ describe("upsertAddress", () => {
                 street: "Herzl",
                 streetNumber: 5,
                 postalCode: 12345,
+                pt: "apartment",
             },
         } as any;
         const res = {
@@ -151,6 +152,7 @@ describe("upsertAddress", () => {
                 apartment: 4,
                 postalCode: 52522,
                 notes: "Doorbell broken",
+                pt: "apartment",
             },
         } as any;
         const res = {
@@ -170,6 +172,7 @@ describe("upsertAddress", () => {
             apartment: 4,
             postalCode: 52522,
             notes: "Doorbell broken",
+            pt: "apartment",
         });
 
         expect(store.get("addresses/12")).toMatchObject({
@@ -181,13 +184,14 @@ describe("upsertAddress", () => {
             apartment: 4,
             postalCode: 52522,
             notes: "Doorbell broken",
+            pt: "apartment",
         });
     });
 
     it("updates existing address (returning 200) if user already has an address", async () => {
         const store = new Map<string, Record<string, unknown>>([
             ["users/12", { id: 12, phone: "0501234567" }],
-            ["addresses/12", { id: 12, userId: 12, city: "Tel Aviv", street: "Herzl", streetNumber: 5, apartment: 1, postalCode: 12345, notes: null }],
+            ["addresses/12", { id: 12, userId: 12, city: "Tel Aviv", street: "Herzl", streetNumber: 5, apartment: 1, postalCode: 12345, notes: null, pt: "apartment" }],
         ]);
         mockDb = createMockFirestore(store);
 
@@ -199,6 +203,7 @@ describe("upsertAddress", () => {
                 street: "Weizmann",
                 streetNumber: 50,
                 postalCode: 53201,
+                pt: "house",
             },
         } as any;
         const res = {
@@ -218,6 +223,7 @@ describe("upsertAddress", () => {
             apartment: null,
             postalCode: 53201,
             notes: null,
+            pt: "house",
         });
 
         expect(store.get("addresses/12")).toMatchObject({
@@ -229,6 +235,7 @@ describe("upsertAddress", () => {
             apartment: null,
             postalCode: 53201,
             notes: null,
+            pt: "house",
         });
     });
 });
