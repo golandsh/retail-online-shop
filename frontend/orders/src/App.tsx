@@ -8,6 +8,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { PaymentModal } from './components/PaymentModal';
 import { CardsModal } from './components/CardsModal';
 import { OrdersModal } from './components/OrdersModal';
+import { LegalModal } from './components/LegalModal';
 import './App.scss';
 
 const AppContent: React.FC = () => {
@@ -25,16 +26,20 @@ const AppContent: React.FC = () => {
   const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'terms' | 'privacy'>('terms');
 
-  // Automatically update selectedCategoryId when categories load
+  const openLegalModal = (tab: 'terms' | 'privacy') => {
+    setLegalModalTab(tab);
+    setIsLegalModalOpen(true);
+  };
+
+  // Reset selectedCategoryId if selected category no longer exists
   useEffect(() => {
-    if (categories.length > 0) {
+    if (categories.length > 0 && selectedCategoryId && selectedCategoryId !== 'all') {
       const exists = categories.some((c) => c.categoryId === selectedCategoryId);
       if (!exists) {
-        const firstMain = categories.find((c) => !c.parentID);
-        if (firstMain) {
-          setSelectedCategoryId(firstMain.categoryId);
-        }
+        setSelectedCategoryId('');
       }
     }
   }, [categories, selectedCategoryId]);
@@ -73,15 +78,44 @@ const AppContent: React.FC = () => {
     return sum + item.product.price * factor;
   }, 0);
 
+  // Helper to format full category path (e.g. "מוצרי חלב › גבינות ומעדנים" or "מוצרי חלב")
+  const getCategoryTitle = (category: typeof categoriesToUse[0]) => {
+    if (category.parentID) {
+      const parent = categoriesToUse.find((c) => c.categoryId === category.parentID);
+      if (parent) {
+        return `${parent.categoryDesc} › ${category.categoryDesc}`;
+      }
+    }
+    return category.categoryDesc;
+  };
+
   // Find active category hierarchy
+  const isFiltered = Boolean(selectedCategoryId && selectedCategoryId !== 'all');
   const activeCategory = categoriesToUse.find((c) => c.categoryId === selectedCategoryId);
-  const subCategories = categoriesToUse.filter((c) => c.parentID === selectedCategoryId);
   
-  // Combine active category and its subcategories for rendering
-  const categoriesToRender = [
-    ...(activeCategory ? [activeCategory] : []),
-    ...subCategories
-  ];
+  let categoriesToRender: typeof categoriesToUse = [];
+  if (!isFiltered) {
+    // Default mode: display ALL categories and subcategories grouped hierarchically
+    const parents = categoriesToUse.filter((c) => !c.parentID);
+    const ordered: typeof categoriesToUse = [];
+    parents.forEach((parent) => {
+      ordered.push(parent);
+      const subs = categoriesToUse.filter((c) => c.parentID === parent.categoryId);
+      ordered.push(...subs);
+    });
+    const addedIds = new Set(ordered.map((c) => c.categoryId));
+    categoriesToUse.forEach((c) => {
+      if (!addedIds.has(c.categoryId)) {
+        ordered.push(c);
+      }
+    });
+    categoriesToRender = ordered;
+  } else if (activeCategory) {
+    const subCategories = categoriesToUse.filter((c) => c.parentID === selectedCategoryId);
+    categoriesToRender = [activeCategory, ...subCategories];
+  } else {
+    categoriesToRender = categoriesToUse;
+  }
 
   // Helper check to verify if a profile address is complete
   const isAddressSet =
@@ -103,7 +137,7 @@ const AppContent: React.FC = () => {
         <div 
           className="header-right"
           onClick={() => {
-            setSelectedCategoryId('dairy');
+            setSelectedCategoryId('');
             setIsCartOpen(false);
             setIsUserDropdownOpen(false);
           }}
@@ -230,8 +264,28 @@ const AppContent: React.FC = () => {
         {/* Products grid */}
         <main className="portal-main">
           <div className="main-header">
-            <h2>{activeCategory?.categoryDesc}</h2>
-            <p className="category-sub">מציג מוצרים בקטגוריית {activeCategory?.categoryDesc}</p>
+            <div className="main-header-text">
+              <h2>
+                {isFiltered && activeCategory
+                  ? activeCategory.categoryDesc
+                  : 'כל המחלקות והמוצרים'}
+              </h2>
+              <p className="category-sub">
+                {isFiltered && activeCategory
+                  ? `מציג מוצרים בקטגוריית ${activeCategory.categoryDesc}`
+                  : 'מציג את כל המוצרים מכל המחלקות'}
+              </p>
+            </div>
+
+            {isFiltered && (
+              <button
+                type="button"
+                className="clear-filter-btn"
+                onClick={() => setSelectedCategoryId('')}
+              >
+                ✕ ביטול סינון (הצג הכל)
+              </button>
+            )}
           </div>
 
           <div className="products-container">
@@ -241,9 +295,7 @@ const AppContent: React.FC = () => {
 
               return (
                 <div key={category.categoryId} className="category-section">
-                  {category.categoryId !== selectedCategoryId && (
-                    <h3 className="subcategory-section-title">{category.categoryDesc}</h3>
-                  )}
+                  <h3 className="subcategory-section-title">{getCategoryTitle(category)}</h3>
                   
                   <div className="products-grid">
                     {products.map((product) => {
@@ -262,6 +314,30 @@ const AppContent: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Footer with Terms of Use & Privacy Policy links */}
+          <footer className="portal-footer">
+            <div className="footer-links">
+              <button
+                type="button"
+                className="footer-link-btn"
+                onClick={() => openLegalModal('terms')}
+              >
+                תנאי שימוש
+              </button>
+              <span className="footer-separator">•</span>
+              <button
+                type="button"
+                className="footer-link-btn"
+                onClick={() => openLegalModal('privacy')}
+              >
+                מדיניות פרטיות
+              </button>
+            </div>
+            <p className="footer-copyright">
+              © {new Date().getFullYear()} החנות המקוונת. כל הזכויות שמורות.
+            </p>
+          </footer>
         </main>
       </div>
 
@@ -315,6 +391,13 @@ const AppContent: React.FC = () => {
       <OrdersModal
         isOpen={isOrdersModalOpen}
         onClose={() => setIsOrdersModalOpen(false)}
+      />
+
+      {/* Legal & Terms Modal */}
+      <LegalModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalModalTab}
       />
     </div>
   );

@@ -13,13 +13,13 @@ interface PaymentModalProps {
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onOpenUserModal }) => {
   const { cart, savedCards, createNewOrder, saveCreditCard, profile } = useApp();
-  
+
   // Checkout fields
   const [notes, setNotes] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string>(
     savedCards.length > 0 ? savedCards[0].id : 'new'
   );
-  
+
   // New Card Form fields
   const [newCardData, setNewCardData] = useState({
     cardholderName: '',
@@ -28,7 +28,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onO
     cvv: '',
   });
   const [shouldSaveCard, setShouldSaveCard] = useState(true);
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [formError, setFormError] = useState('');
@@ -222,8 +222,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onO
                 </label>
                 <div className="address-options-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {profile.addresses.map((addr, idx) => (
-                    <label 
-                      key={idx} 
+                    <label
+                      key={idx}
                       className={`address-option-label ${selectedAddressIdx === idx ? 'active' : ''}`}
                       style={{
                         display: 'flex',
@@ -309,7 +309,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onO
                 </div>
               )}
               <div className="price-line total-line">
-                <span>סכום זמני לאישור (Pre-auth):</span>
+                <span>סכום זמני לאישור:</span>
                 <span>₪{preAuthPrice.toFixed(2)}</span>
               </div>
               <p className="preauth-explain">
@@ -321,7 +321,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onO
           {/* Credit Card Selection */}
           <div className="checkout-section">
             <h4>אמצעי תשלום</h4>
-            
+
             <div className="card-options-list">
               {savedCards.map((card) => (
                 <label key={card.id} className="card-option-label">

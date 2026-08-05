@@ -1,0 +1,152 @@
+.legal-modal-card {
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.legal-modal-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+}
+
+.legal-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.legal-tab-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #e5e7eb;
+    color: var(--text-primary);
+  }
+
+  &.active {
+    background: var(--accent-light);
+    border-color: var(--accent-glow);
+    color: var(--accent);
+    box-shadow: 0 1px 3px rgba(13, 92, 86, 0.1);
+  }
+}
+
+.legal-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  text-align: right;
+  direction: rtl;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 3px;
+  }
+}
+
+.legal-document-content {
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin: 0 0 4px 0;
+  }
+
+  .last-updated-tag {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 20px;
+  }
+
+  section {
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 6px 0;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #4b5563;
+    line-height: 1.6;
+    margin: 0 0 10px 0;
+  }
+
+  ul {
+    padding-right: 20px;
+    margin: 0 0 12px 0;
+
+    li {
+      font-size: 0.875rem;
+      color: #4b5563;
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+  }
+}
+
+.legal-highlight-box {
+  background-color: #fef2f2;
+  border-right: 4px solid var(--danger);
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+
+  h4 {
+    margin: 0 0 8px 0;
+    color: #991b1b;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  p {
+    color: #7f1d1d;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  ul li {
+    color: #7f1d1d;
+  }
+}
+
+.legal-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+
+  .external-link-btn {
+    font-size: 0.825rem;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
