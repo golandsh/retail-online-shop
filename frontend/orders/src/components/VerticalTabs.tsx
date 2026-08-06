@@ -46,6 +46,14 @@ export const VerticalTabs: React.FC<VerticalTabsProps> = ({
         <h3>מחלקות</h3>
       </div>
       <nav className="tabs-nav">
+        <button
+          type="button"
+          className={`category-tab all-tab ${!selectedCategoryId || selectedCategoryId === 'all' ? 'active' : ''}`}
+          onClick={() => onSelectCategory('')}
+        >
+          <span className="category-desc">🛍️ כל המחלקות והמוצרים</span>
+        </button>
+
         {parents.map((parent) => {
           const subs = getSubcategories(parent.categoryId);
           const hasSubs = subs.length > 0;
