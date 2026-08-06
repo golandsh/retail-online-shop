@@ -2,7 +2,7 @@
   "name": "retail-online-shop-monorepo",
   "private": true,
   "version": "1.0.0",
-  "packageManager": "pnpm@11.8.0",
+  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
