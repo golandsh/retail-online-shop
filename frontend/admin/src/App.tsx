@@ -1,34 +1,99 @@
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import type { User } from 'firebase/auth';
-import { auth, googleProvider } from './firebase';
+import React, { useEffect, useState } from 'react';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInAnonymously,
+  signOut,
+} from 'firebase/auth';
+import { auth, db } from './firebase';
+import { isEmailWhitelisted } from './utils/authWhitelist';
+import {
+  verifyAdminInFirestore,
+  getAdminByEmail,
+  type AdminRecord,
+} from './utils/adminsService';
 import { UploadModal } from './components/UploadModal';
 import { OrdersGrid } from './components/OrdersGrid';
 import { t } from './strings';
 import './App.scss';
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [adminProfile, setAdminProfile] = useState<AdminRecord | null>(() => {
+    try {
+      const saved = localStorage.getItem('activeAdminProfile');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
+  const [emailInput, setEmailInput] = useState<string>('');
+  const [passwordInput, setPasswordInput] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'orders' | 'upload'>('orders');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser && currentUser.email) {
+        if (!isEmailWhitelisted(currentUser.email)) {
+          console.warn(`Unauthorized login attempt by ${currentUser.email}`);
+          setAuthError(t('unauthorizedEmail', { email: currentUser.email }));
+          await signOut(auth);
+          setAdminProfile(null);
+          localStorage.removeItem('activeAdminProfile');
+          setLoading(false);
+          return;
+        }
+
+        const adminDoc = await getAdminByEmail(db, currentUser.email);
+        if (adminDoc) {
+          setAdminProfile(adminDoc);
+          localStorage.setItem('activeAdminProfile', JSON.stringify(adminDoc));
+        }
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  const handleLogin = async () => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setAuthError(null);
+    setLoginLoading(true);
+
+    const trimmedEmail = emailInput.trim().toLowerCase();
+
     try {
-      await signInWithPopup(auth, googleProvider);
+      // 1. Verify email and password against Firestore `admins` collection
+      const verification = await verifyAdminInFirestore(db, trimmedEmail, passwordInput);
+      if (!verification.success || !verification.admin) {
+        console.warn(`Firestore admins check failed for ${trimmedEmail}`);
+        setAuthError(t('invalidCredentials'));
+        setLoginLoading(false);
+        return;
+      }
+
+      setAdminProfile(verification.admin);
+      localStorage.setItem('activeAdminProfile', JSON.stringify(verification.admin));
+
+      // 2. Connect Firebase Auth session for request.auth rules
+      try {
+        await signInWithEmailAndPassword(auth, trimmedEmail, passwordInput);
+      } catch (authErr: any) {
+        try {
+          await createUserWithEmailAndPassword(auth, trimmedEmail, passwordInput);
+        } catch {
+          await signInAnonymously(auth);
+        }
+      }
     } catch (error) {
-      console.error("Login failed:", error);
-      setAuthError(t('authError'));
+      console.error("Login process error:", error);
+      setAuthError(t('invalidCredentials'));
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -37,6 +102,9 @@ function App() {
       await signOut(auth);
     } catch (error) {
       console.error("Logout failed:", error);
+    } finally {
+      setAdminProfile(null);
+      localStorage.removeItem('activeAdminProfile');
     }
   };
 
@@ -48,7 +116,7 @@ function App() {
     );
   }
 
-  if (!user) {
+  if (!adminProfile) {
     return (
       <div className="login-container" dir="rtl">
         <div className="login-card">
@@ -59,31 +127,41 @@ function App() {
 
           {authError && <div className="error-alert">{authError}</div>}
 
-          <button
-            type="button"
-            className="btn btn-google"
-            onClick={handleLogin}
-          >
-            <svg className="google-icon" viewBox="0 0 24 24" width="20" height="20">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          <form onSubmit={handleLoginSubmit} className="login-form">
+            <div className="form-group">
+              <label htmlFor="admin-email">{t('emailLabel')}</label>
+              <input
+                id="admin-email"
+                type="email"
+                required
+                className="form-control"
+                placeholder={t('emailPlaceholder')}
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
               />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="admin-password">{t('passwordLabel')}</label>
+              <input
+                id="admin-password"
+                type="password"
+                required
+                className="form-control"
+                placeholder={t('passwordPlaceholder')}
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
               />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>{t('loginButton')}</span>
-          </button>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-submit"
+              disabled={loginLoading}
+            >
+              {loginLoading ? 'מתחבר...' : t('loginButton')}
+            </button>
+          </form>
 
           <footer className="login-footer">
             <p>{t('footerText')}</p>
@@ -119,15 +197,8 @@ function App() {
         </div>
 
         <div className="navbar-user-section">
-          {user.photoURL && (
-            <img
-              className="user-avatar"
-              src={user.photoURL}
-              alt={user.displayName || "User"}
-            />
-          )}
           <span className="user-name">
-            {t('welcome', { name: user.displayName || user.email || '' })}
+            {t('welcome', { name: adminProfile.name || '' })}
           </span>
           <button
             type="button"
