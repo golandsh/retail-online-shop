@@ -3,56 +3,14 @@ import {
   getDocs,
   query,
   where,
-  addDoc,
   type Firestore,
 } from 'firebase/firestore';
-import { useEmulator } from '../firebase';
 
 export interface AdminRecord {
   id?: string;
   email: string;
   password?: string;
   name: string;
-}
-
-export const INITIAL_DEFAULT_ADMINS: AdminRecord[] = [
-  {
-    email: 'golandsh@gmail.com',
-    password: 'Shlomi123!',
-    name: 'שלומי גולנד',
-  },
-  {
-    email: 'golandsh@hotmail.com',
-    password: 'Fruitshop2486!',
-    name: 'שלומי גולנד',
-  },
-  {
-    email: 'itaycohen131@gmail.com',
-    password: 'Fruitshop2486!',
-    name: 'איתי כהן',
-  },
-];
-
-/**
- * Ensures the `admins` collection has initial records ONLY when running on the local emulator.
- * In remote environments (QA / Production), it will NOT auto-seed documents into Firestore.
- */
-export async function seedAdminsIfEmpty(db: Firestore): Promise<void> {
-  if (!useEmulator) {
-    return;
-  }
-
-  try {
-    const snapshot = await getDocs(collection(db, 'admins'));
-    if (snapshot.empty) {
-      console.log('Seeding initial default admins into local Firestore emulator...');
-      for (const admin of INITIAL_DEFAULT_ADMINS) {
-        await addDoc(collection(db, 'admins'), admin);
-      }
-    }
-  } catch (err) {
-    console.error('Error seeding admins collection:', err);
-  }
 }
 
 /**
@@ -63,7 +21,6 @@ export async function getAdminByEmail(
   email: string
 ): Promise<AdminRecord | null> {
   const normalizedEmail = email.trim().toLowerCase();
-  await seedAdminsIfEmpty(db);
 
   try {
     const q = query(
